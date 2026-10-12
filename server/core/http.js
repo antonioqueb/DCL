@@ -9,7 +9,7 @@ import { toCsv } from './csv.js';
 import * as d from '../domain/decimal.js';
 import { DecimalError } from '../domain/decimal.js';
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
+const MIME = { '.mjs': 'text/javascript; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
 const COOKIE = 'dcl_sesion';
 
 export function createApp({ store, auth, config, webDir }) {
@@ -43,10 +43,12 @@ export function createApp({ store, auth, config, webDir }) {
   }
 
   function serveStatic(req, res, pathname) {
-    let rel = decodeURIComponent(pathname);
-    if (rel === '/' || !path.extname(rel)) rel = '/index.html';
-    const file = path.join(webDir, path.normalize(rel));
-    if (!file.startsWith(webDir + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(res, 404, { error: 'no_encontrado', message: 'Recurso no encontrado.' });
+    let rel = decodeURIComponent(pathname); let base = webDir;
+    // Visor de PDF para planos: se sirve desde la dependencia instalada, no desde Internet.
+    if (rel.startsWith('/vendor/pdfjs/')) { base = path.join(config.root, 'node_modules', 'pdfjs-dist', 'build'); rel = rel.slice('/vendor/pdfjs'.length); }
+    else if (rel === '/' || !path.extname(rel)) rel = '/index.html';
+    const file = path.join(base, path.normalize(rel));
+    if (!file.startsWith(base + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(res, 404, { error: 'no_encontrado', message: 'Recurso no encontrado.' });
     const buf = fs.readFileSync(file);
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': 'no-cache' });
     res.end(buf);

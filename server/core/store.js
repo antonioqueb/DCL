@@ -342,6 +342,35 @@ export class Store {
   }
   generations() { return fs.readdirSync(path.join(this.dir, 'manifests')).filter((f) => f.startsWith('manifest-')).sort().map((f) => Number(f.slice(9, 17))); }
 
+  // Sustituye TODAS las colecciones por un conjunto ya validado (restauración, reinicio de demostración,
+  // carga de paquete portable). Conserva identificadores, versiones y la cadena de auditoría recibida.
+  replaceAll(cols, { auditHead }) {
+    if (this.readOnly || this.closed) throw new StorageError('El almacenamiento no admite escritura.');
+    const gen = this.manifest.generation + 1; const genRel = path.join('generations', String(gen).padStart(8, '0'));
+    fs.mkdirSync(path.join(this.dir, genRel), { recursive: true });
+    const newCols = new Map(); const collections = {};
+    for (const [c, records] of cols) {
+      if (!ENTITIES[c]) throw new StorageError(`Colección desconocida en el conjunto a cargar: ${c}`);
+      const m = new Map(); const byPart = new Map();
+      for (const raw of records) { const r = deepFreeze(validateRecord(c, raw)); m.set(r.id, r); const pk = partitionKey(c, r); if (!byPart.has(pk)) byPart.set(pk, []); byPart.get(pk).push(r); }
+      const parts = {};
+      for (const [pk, list] of byPart) {
+        const rel = path.join(genRel, pk ? `${c}@${pk}.json` : `${c}.json`);
+        const data = Buffer.from(JSON.stringify({ collection: c, partition: pk, schemaVersion: SCHEMA_VERSION, generation: gen, records: list }));
+        writeFileDurable(path.join(this.dir, rel), data); parts[pk] = { file: rel, sha256: sha256(data), count: list.length };
+      }
+      collections[c] = parts; newCols.set(c, m);
+    }
+    const problems = validateAll(new View(newCols, this.manifest));
+    if (problems.length) { fs.rmSync(path.join(this.dir, genRel), { recursive: true, force: true }); throw new StorageError('El conjunto a cargar no supera la validación de esquema y referencias.', { problems: problems.slice(0, 50) }); }
+    const manifest = { ...this.manifest, generation: gen, committedAt: nowInstant(), auditHead, collections };
+    const text = JSON.stringify(manifest, null, 1);
+    writeFileDurable(path.join(this.dir, 'manifests', `manifest-${String(gen).padStart(8, '0')}.json`), text);
+    writeFileDurable(path.join(this.dir, 'manifest.json'), text); fsyncDir(this.dir);
+    this._cols = newCols; this.manifest = deepFreeze(manifest);
+  }
+  dump() { const out = new Map(); for (const [c, m] of this._cols) out.set(c, [...m.values()]); return out; }
+
   // ── Adjuntos binarios: contenido direccionado por hash, fuera de cualquier ruta pública ──
   blobPath(hash) { if (!/^[0-9a-f]{64}$/.test(hash)) throw invalid('Identificador de archivo inválido.'); return path.join(this.dir, 'blobs', hash.slice(0, 2), hash); }
   putBlob(buf) {
