@@ -1,16 +1,36 @@
 // Inicio, obras (expediente operativo), captura y revisión de avances, adicionales, incidencias y jornadas.
+import { peek } from '../core.js';
 import { h, clear, get, post, patch, del, state, can, page, card, kv, kpi, miniTable, tabs, btn, linkBtn, money, qty, date, instant, chip, load, formDialog, withReason, act, toast, showError, errorNote, options, uploader, evidenceGrid, today, go, dialog, empty, qs, parseHash } from '../core.js';
 import { listView } from '../table.js';
 import { budgetTab, plansTab } from './clientes.js';
+import { bars, lines, donut } from '../charts.js';
 
 // ───────── Inicio por rol ─────────
 async function home() {
   const p = page('Inicio', { sub: state.session.audience === 'interno' ? 'Pendientes de su perfil. Cada tarjeta abre su detalle.' : 'Documentos que requieren su revisión.' });
+  const inbox = h('div', {}); p.body.append(inbox);
+  const drawInbox = () => get('/api/home/tasks').then((t) => {
+    if (!t.items.length) { clear(inbox).append(h('div', { class: 'inbox' }, h('div', { class: 'inbox-head' }, h('h2', {}, 'Mi trabajo')), empty('Está al día', 'No hay pendientes que esperen una acción suya.'))); return; }
+    const rows = []; let group = null;
+    for (const it of t.items) { if (it.group !== group) { group = it.group; rows.push(h('div', { class: 'inbox-group' }, `${group} · ${t.items.filter((x) => x.group === group).length}`)); }
+      const run = async () => { if (!(await dialog({ title: `${it.action.label}: ${it.title}`, text: `${it.action.confirm}${it.amount ? ` Importe: ${money(it.amount)}.` : ''}`, actions: [{ label: 'Cancelar', value: false }, { label: it.action.label, value: true, primary: true }] }))) return; try { await post(it.action.url, it.action.body); toast(`${it.title}: hecho.`, 'ok'); drawInbox(); } catch (e) { showError(e); if (e.status === 409 || e.status === 422) peek(it.href, drawInbox); } };
+      rows.push(h('div', { class: `task ${it.urgent ? 'urgent' : ''}` }, h('span', { class: 'mark', title: it.urgent ? 'Urgente' : '' }), h('div', { class: 'tx' }, h('a', { href: it.href, onclick: (e) => { if (window.matchMedia('(min-width: 901px)').matches && !e.metaKey && !e.ctrlKey && !it.href.includes('/revision') && !it.href.endsWith('incidencias')) { e.preventDefault(); peek(it.href, drawInbox); } } }, it.title), h('span', {}, it.sub || '')), it.amount ? h('span', { class: 'amt' }, money(it.amount)) : null,
+        it.action ? btn(it.action.label, run, 'small primary') : h('a', { class: 'btn small', href: it.href }, it.actionLabel || 'Abrir'))); }
+    clear(inbox).append(h('div', { class: 'inbox' }, h('div', { class: 'inbox-head' }, h('h2', {}, 'Mi trabajo'), h('span', { class: 'muted small' }, `${t.total ?? t.items.length} pendiente${(t.total ?? t.items.length) === 1 ? '' : 's'}${t.total > t.items.length ? ` · se muestran ${t.items.length}` : ''}`)), rows));
+  }).catch(() => clear(inbox));
+  drawInbox();
+  const rest = h('div', { class: 'pbody' }); p.body.append(rest); p.body = rest;
   await load(p.body, () => get('/api/home'), (d) => {
     if (d.period) p.body.append(h('p', { class: 'muted' }, `Semana operativa ${d.period.code}: ${date(d.period.startDate)} a ${date(d.period.endDate)} · ${d.period.status === 'cerrada' ? 'cerrada' : 'abierta'}`));
     if (!d.cards.length) p.body.append(empty('Sin tareas asignadas', 'Su perfil no tiene pendientes en este momento.'));
     p.body.append(h('div', { class: 'cards' }, d.cards.map(kpi)));
     if (d.role === 'direccion') p.body.append(h('p', { class: 'small muted' }, 'Los importes "expuestos" o "pendientes" son montos por resolver; no son pérdidas comprobadas.'));
+    if (state.session.audience === 'interno') { const zone = h('div', { class: 'chart-grid' }); p.body.append(zone); get('/api/home/charts').then((c) => {
+      if (c.weeks?.length) zone.append(card('Mano de obra por semana', h('p', { class: 'card-desc' }, 'Autorizado, en revisión y pagado (confirmado) de las últimas semanas.'), bars(h('div', {}), { label: 'Mano de obra por semana', categories: c.weeks.map((w) => w.code.replace(/^\d{4}-/, '')), series: [{ name: 'Autorizado', data: c.weeks.map((w) => w.authorized) }, { name: 'En revisión', data: c.weeks.map((w) => w.inReview), color: '--chart-3' }, { name: 'Pagado', data: c.weeks.map((w) => w.paid), color: '--chart-2' }] })));
+      if (c.estimatesByStatus?.length) zone.append(card('Estimaciones de contratistas por estado', h('p', { class: 'card-desc' }, 'Número de documentos en cada etapa.'), donut(h('div', {}), { label: 'Estimaciones por estado', money: false, data: c.estimatesByStatus })));
+      if (c.works?.length) zone.append(card('Aprobado por el cliente y costos por obra', h('p', { class: 'card-desc' }, 'Trabajo aprobado frente a costos registrados. Resultado parcial.'), bars(h('div', {}), { label: 'Aprobado y costos por obra', categories: c.works.map((w) => w.name.replace(' (DEMO)', '')), series: [{ name: 'Aprobado por el cliente', data: c.works.map((w) => w.approved) }, { name: 'Mano de obra', data: c.works.map((w) => w.labour), color: '--chart-3' }, { name: 'Otros costos', data: c.works.map((w) => w.other), color: '--chart-4' }] })));
+      if (c.aging?.some((a) => Number(a.value))) zone.append(card('Saldo por cobrar por antigüedad', h('p', { class: 'card-desc' }, 'Según fecha de vencimiento.'), bars(h('div', {}), { label: 'Antigüedad de saldos', horizontal: true, categories: c.aging.map((a) => a.name), series: [{ name: 'Saldo', data: c.aging.map((a) => a.value) }] })));
+    }).catch(() => {}); }
     if (can('progress.capture')) p.body.append(h('div', { class: 'actions' }, linkBtn('Capturar avance', '#/avances/capturar', 'primary')));
   });
   return p.el;
@@ -60,6 +80,9 @@ function summaryTab(body, w, reload) {
   const sum = h('div', {}); body.append(sum);
   load(sum, () => get(`/api/works/${w.id}/summary`), (s) => {
     sum.append(h('p', { class: 'muted small' }, `Cifras al ${date(s.asOf)}. Cada total abre su detalle hasta el registro original.`), h('div', { class: 'cards' }, s.cards.map(kpi)));
+    const val = (k) => s.cards.find((x) => x.key === k)?.value; const steps = [['presupuesto', 'Presupuesto vigente'], ['ejecutado', 'Ejecución valorizada'], ['aprobado', 'Aprobado por el cliente'], ['facturado', 'Facturado'], ['cobrado', 'Cobrado']].filter(([k]) => val(k) !== undefined);
+    if (steps.length >= 3) sum.append(h('div', { class: 'chart-grid' }, card('Del presupuesto al cobro', h('p', { class: 'card-desc' }, 'Cada etapa es un hecho distinto; ninguna se obtiene de la anterior.'), bars(h('div', {}), { label: 'Del presupuesto al cobro', categories: steps.map(([, l]) => l), series: [{ name: 'Importe', data: steps.map(([k]) => val(k)) }] })),
+      s.costs?.byCategory.some((x) => Number(x.amount)) ? card('Costos registrados por categoría', h('p', { class: 'card-desc' }, 'Estimaciones autorizadas y gastos autorizados asignados a la obra.'), donut(h('div', {}), { label: 'Costos por categoría', data: s.costs.byCategory.filter((x) => Number(x.amount)).map((x) => ({ name: x.category.replace(' (estimaciones autorizadas)', ''), value: x.amount })) })) : null));
     if (s.margin) sum.append(card('Margen sobre ejecución (resultado parcial)', kv([['Trabajo aprobado por el cliente', money(s.margin.revenue)], ['Costos registrados', money(s.margin.costs)], ['Diferencia', money(s.margin.amount)], ['Porcentaje', s.margin.pct === null ? 'No calculable (sin trabajo aprobado)' : `${qty(s.margin.pct)} %`]]), h('p', { class: 'small muted' }, s.margin.formula), s.margin.caveat ? h('div', { class: 'note warn' }, s.margin.caveat) : null,
       s.consolidation === 'pendiente_clasificar' ? h('div', { class: 'note warn' }, 'Esta obra está pendiente de clasificar: no se incluye ni se excluye de los resultados de la empresa hasta validarlo.') : null));
     if (s.notBilled?.lines) sum.append(h('div', { class: 'note' }, `${s.notBilled.lines} avance(s) validados todavía no forman parte de una estimación al cliente`, s.notBilled.valued !== null ? ` (valor a precio de presupuesto: ${money(s.notBilled.valued)})` : ' (no valorizable: hay avances sin partida de presupuesto)', '. ', h('a', { href: '#/reportes/ejecucion-no-estimada' }, 'Ver detalle')));
@@ -87,8 +110,8 @@ function locationsTab(body, w, reload) {
 
 // ───────── Avances ─────────
 async function progressList() {
-  const p = page('Avances', { sub: 'Mediciones de campo: reportadas por supervisión y validadas antes de pagarse o cobrarse.', actions: can('progress.capture') ? linkBtn('Capturar avance', '#/avances/capturar', 'primary') : null });
-  p.body.append(listView({ endpoint: '/api/progress', rowHref: (r) => `#/avances/${r.id}`, workFilter: true, dateFilter: true, emptyText: 'Aún no hay avances capturados.', emptyAction: can('progress.capture') ? linkBtn('Capturar el primero', '#/avances/capturar', 'primary') : null }));
+  const p = page('Avances', { sub: 'Mediciones de campo: reportadas por supervisión y validadas antes de pagarse o cobrarse.', actions: [can('progress.validate') ? linkBtn('Revisar pendientes', '#/avances/revision') : null, can('progress.capture') ? linkBtn('Capturar avance', '#/avances/capturar', 'primary') : null] });
+  p.body.append(listView({ endpoint: '/api/progress', panel: true, rowHref: (r) => `#/avances/${r.id}`, workFilter: true, dateFilter: true, views: [{ label: 'Todos', query: {} }, { label: 'Por validar', query: { 'f.status': 'reportado' } }, { label: 'Borradores', query: { 'f.status': 'borrador' } }, { label: 'Sin evidencia', query: { 'f.evidenceState': 'faltante' } }, { label: 'Rechazados', query: { 'f.status': 'rechazado' } }, { label: 'Validados', query: { 'f.status': 'validado' } }], emptyText: 'Aún no hay avances capturados.', emptyAction: can('progress.capture') ? linkBtn('Capturar el primero', '#/avances/capturar', 'primary') : null }));
   return p.el;
 }
 const draftKey = (workId) => `dcl.borrador.${state.session.user.id}.${workId || 'sin-obra'}`;
@@ -112,6 +135,8 @@ async function capture(_, query) {
     const sel = (label, key, opts, req) => h('label', { class: 'f' }, `${label}${req ? ' *' : ''}`, h('select', { onchange: (e) => { S[key] = e.target.value; saveDraft(); if (key === 'workId') { S.locationId = ''; drawHead(); } drawRows(); } }, h('option', { value: '' }, 'Seleccione…'), opts.map((x) => h('option', { value: x.id, selected: x.id === S[key] }, x.label))));
     clear(head).append(sel('Obra', 'workId', works, true), sel('Ubicación', 'locationId', locs.map((l) => ({ id: l.id, label: l.path })), true), sel('Contratista', 'contractorId', o.contractors, false),
       h('label', { class: 'f' }, 'Fecha real de ejecución *', h('input', { type: 'date', value: S.executionDate, max: today(), onchange: (e) => { S.executionDate = e.target.value; saveDraft(); } })));
+    const recent = (JSON.parse(localStorage.getItem(`dcl.recientes.${state.session.user.id}`) || '{}')[S.workId] || []).map((id) => locs.find((l) => l.id === id)).filter(Boolean);
+    if (recent.length) head.append(h('div', { class: 'recent wide' }, 'Recientes:', recent.map((l) => h('button', { class: 'btn small', type: 'button', onclick: () => { S.locationId = l.id; saveDraft(); drawHead(); drawRows(); } }, l.path))));
     if (!locs.length) head.append(h('div', { class: 'note warn wide' }, 'Esta obra no tiene ubicaciones. ', h('a', { href: `#/obras/${S.workId}/ubicaciones` }, 'Regístrelas primero.')));
   }
   function drawRows() {
@@ -150,13 +175,14 @@ async function capture(_, query) {
       // La misma clave en cada reintento evita que un avance se duplique.
       const res = await post('/api/progress', { entries, device: navigator.userAgent.slice(0, 120) }, { key: S.key });
       localStorage.removeItem(draftKey(S.workId)); localStorage.setItem(`dcl.ultima.${state.session.user.id}`, JSON.stringify({ workId: S.workId, contractorId: S.contractorId }));
+      { const k = `dcl.recientes.${state.session.user.id}`; const all = JSON.parse(localStorage.getItem(k) || '{}'); all[S.workId] = [S.locationId, ...(all[S.workId] || []).filter((x) => x !== S.locationId)].slice(0, 4); localStorage.setItem(k, JSON.stringify(all)); }
       toast('Captura guardada en el servidor.', 'ok'); const warn = res.results.flatMap((x) => x.warnings || []);
       sessionStorage.setItem('dcl.captura', JSON.stringify({ ids: res.results.map((x) => x.id), warn })); go(`#/avances/evidencias`);
     } catch (e) { saveDraft(); msg.append(errorNote(e)); if (e.status === 0) msg.append(h('div', { class: 'note warn' }, 'La captura NO está guardada. Se conserva el borrador en este dispositivo; pulse "Guardar captura" cuando vuelva la conexión.')); }
   };
   await drawHead(); drawRows();
   p.body.append(card('Visita', head), rowsEl, h('div', { class: 'actions' }, btn('Agregar otro concepto en esta visita', () => { S.rows.push(newRow()); saveDraft(); drawRows(); }), btn('Repetir ubicación en una nueva captura', () => { S.rows = [newRow()]; S.key = crypto.randomUUID(); saveDraft(); drawRows(); toast('Se conservaron obra, ubicación y contratista. Las cantidades y fotografías no se copian.'); }, 'ghost')),
-    msg, h('div', { class: 'actions' }, btn('Guardar captura', send, 'primary'), btn('Descartar borrador', () => { localStorage.removeItem(draftKey(S.workId)); go('#/avances'); }, 'ghost')), status);
+    msg, h('div', { class: 'actions savebar' }, btn('Guardar captura', send, 'primary'), btn('Descartar borrador', () => { localStorage.removeItem(draftKey(S.workId)); go('#/avances'); }, 'ghost')), status);
   return p.el;
 }
 // Segundo paso de la captura: evidencias con carga confirmada y envío a revisión.
@@ -175,6 +201,23 @@ async function captureEvidence() {
     try { for (const b of blocks) if (b.e.status === 'borrador') await post(`/api/progress/${b.e.id}/submit`); sessionStorage.removeItem('dcl.captura'); toast('Enviado a revisión.', 'ok'); go('#/avances?mine=1'); } catch (e) { showError(e); }
   }, 'primary'), linkBtn('Dejar como borrador', '#/avances?mine=1', 'ghost')));
   return p.el;
+}
+// Revisión en lote: valida varios avances de una vez; los que no pueden validarse explican por qué.
+async function review() {
+  const p = page('Revisar avances pendientes', { crumb: h('a', { href: '#/avances' }, 'Avances'), sub: 'Marque los avances correctos y valídelos juntos. Para rechazar o corregir uno, ábralo.' }); const box = h('div', {}); p.body.append(box);
+  const drawAll = () => load(box, () => get('/api/progress?f.status=reportado&pageSize=200&sort=executionDate'), (d) => {
+    if (!d.items.length) { box.append(card(null, empty('Nada por validar', 'No hay avances reportados en espera de revisión.', linkBtn('Ver todos los avances', '#/avances')))); return; }
+    const picked = new Set(); const mine = state.session.user.id; const blocked = (r) => (r.authorId === mine ? 'Lo capturó usted' : r.evidenceState === 'faltante' ? 'Falta evidencia' : r.overBudget ? 'Sobre presupuesto' : null);
+    const bar = h('div', { class: 'bulk', hidden: true }); const rows = d.items.map((r) => ({ r, cb: h('input', { type: 'checkbox', 'aria-label': `Seleccionar ${r.concept} en ${r.location}`, disabled: !!blocked(r), onchange: (e) => { if (e.target.checked) picked.add(r.id); else picked.delete(r.id); sync(); } }) }));
+    const all = h('input', { type: 'checkbox', 'aria-label': 'Seleccionar todos los que pueden validarse', onchange: (e) => { for (const x of rows) if (!x.cb.disabled) { x.cb.checked = e.target.checked; if (e.target.checked) picked.add(x.r.id); else picked.delete(x.r.id); } sync(); } });
+    const sync = () => { bar.hidden = !picked.size; bar.replaceChildren(h('span', {}, `${picked.size} seleccionado${picked.size === 1 ? '' : 's'}`), btn('Validar seleccionados', run, 'small')); };
+    const run = async () => { let ok = 0; const fails = []; for (const id of picked) { try { await post(`/api/progress/${id}/review`, { decision: 'validar' }); ok++; } catch (e) { const r = d.items.find((x) => x.id === id); fails.push(`${r.concept} · ${r.location}: ${e.message} ${(e.data?.reasons || []).join(' ')}`); } }
+      if (fails.length) await dialog({ title: `${ok} validado${ok === 1 ? '' : 's'}, ${fails.length} sin validar`, text: 'Estos avances necesitan atención individual:', body: h('ul', {}, fails.map((f) => h('li', {}, f))) }); else toast(`${ok} avance${ok === 1 ? '' : 's'} validado${ok === 1 ? '' : 's'}.`, 'ok'); drawAll(); };
+    box.append(h('div', { class: 'tablewrap' }, h('table', {}, h('thead', {}, h('tr', {}, h('th', { class: 'sel' }, all), ['Ejecución', 'Obra', 'Ubicación', 'Concepto', 'Cantidad', 'Contratista', 'Capturó', 'Situación', ''].map((x) => h('th', { class: x === 'Cantidad' ? 'num' : '' }, x)))),
+      h('tbody', {}, rows.map(({ r, cb }) => h('tr', {}, h('td', { class: 'sel' }, cb), h('td', {}, date(r.executionDate)), h('td', {}, r.work), h('td', {}, r.location), h('td', {}, r.concept), h('td', { class: 'num' }, `${qty(r.effectiveQty)} ${r.unit}`), h('td', {}, r.contractor || '—'), h('td', {}, r.author), h('td', {}, blocked(r) ? chip('pendiente', blocked(r)) : r.duplicateFlag === 'posible' ? chip('pendiente', 'Posible duplicado') : chip('validado', 'Lista')), h('td', { class: 'rich' }, linkBtn('Abrir', `#/avances/${r.id}`, 'small ghost'))))))), bar,
+      h('p', { class: 'small muted' }, 'Los avances sin evidencia obligatoria, sobre presupuesto o capturados por usted se revisan uno por uno.'));
+  });
+  drawAll(); return p.el;
 }
 async function progressDetail([id]) {
   const el = h('div', {}); const reload = () => progressDetail([id]).then((n) => el.replaceWith(n));
@@ -208,7 +251,7 @@ async function progressDetail([id]) {
 const addTabs = (cur) => tabs([{ key: 'adicionales', label: 'Adicionales', href: '#/adicionales' }, { key: 'incidencias', label: 'Incidencias', href: '#/adicionales/incidencias' }, (can('workdays.capture') || can('workdays.approve')) && { key: 'jornadas', label: 'Jornadas y rayas', href: '#/adicionales/jornadas' }], cur);
 async function additionals() {
   const p = page('Adicionales', { sub: 'Trabajos fuera de catálogo o del alcance aprobado. Tres decisiones independientes: que el trabajo existe, cuánto se paga y si se cobra al cliente.', actions: can('additionals.report') ? btn('Reportar adicional', newAdditional, 'primary') : null });
-  p.body.append(addTabs('adicionales'), h('div', { class: 'row' }, linkBtn('Solo importes expuestos', '#/adicionales?exposed=1', 'small ghost'), h('span', { class: 'small muted' }, 'Expuesto = costo autorizado cuyo cobro al cliente no está asegurado. No es una pérdida comprobada.')), listView({ endpoint: '/api/additionals', extra: parseHash().query.exposed ? { exposed: 1 } : {}, rowHref: (r) => `#/adicionales/${r.id}`, workFilter: true, dateFilter: true, emptyText: 'No hay adicionales reportados.' }));
+  p.body.append(addTabs('adicionales'), h('div', { class: 'row' }, linkBtn('Solo importes expuestos', '#/adicionales?exposed=1', 'small ghost'), h('span', { class: 'small muted' }, 'Expuesto = costo autorizado cuyo cobro al cliente no está asegurado. No es una pérdida comprobada.')), listView({ endpoint: '/api/additionals', panel: true, extra: parseHash().query.exposed ? { exposed: 1 } : {}, rowHref: (r) => `#/adicionales/${r.id}`, workFilter: true, dateFilter: true, emptyText: 'No hay adicionales reportados.' }));
   return p.el;
 }
 const ADD_KIND = [['trabajo_nuevo', 'Trabajo nuevo'], ['correccion_medicion', 'Corrección de medición'], ['dano', 'Daño'], ['reposicion', 'Reposición'], ['retrabajo', 'Retrabajo'], ['cambio_solicitado', 'Cambio solicitado']].map(([id, label]) => ({ id, label }));
@@ -257,6 +300,6 @@ async function workdays() {
 
 export const routes = [
   [/^\/$/, home], [/^\/obras$/, worksList], [/^\/obras\/([^/]+)(?:\/([a-z]+))?$/, workFile],
-  [/^\/avances$/, progressList], [/^\/avances\/capturar$/, capture], [/^\/avances\/evidencias$/, captureEvidence], [/^\/avances\/([^/]+)$/, progressDetail],
+  [/^\/avances$/, progressList], [/^\/avances\/capturar$/, capture], [/^\/avances\/evidencias$/, captureEvidence], [/^\/avances\/revision$/, review], [/^\/avances\/([^/]+)$/, progressDetail],
   [/^\/adicionales$/, additionals], [/^\/adicionales\/incidencias$/, incidents], [/^\/adicionales\/jornadas$/, workdays], [/^\/adicionales\/([^/]+)$/, additionalDetail],
 ];

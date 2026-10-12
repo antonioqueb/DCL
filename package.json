@@ -16,12 +16,25 @@
     "restore": "node scripts/restore.js",
     "export": "node scripts/export-package.js",
     "docs:data": "node scripts/gen-docs.js",
-    "test": "node --test --test-concurrency=1 tests/*.test.js"
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "build": "astro build --root web",
+    "dev:web": "astro dev --root web",
+    "prestart": "node scripts/ensure-web.js",
+    "predemo": "node scripts/ensure-web.js"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "echarts": "^5.6.0",
     "exceljs": "^4.4.0",
     "jszip": "^3.10.1",
+    "lucide": "^0.460.0",
     "pdfjs-dist": "^4.10.38",
     "pdfkit": "^0.17.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^5.18.2",
+    "tailwindcss": "^4.3.3",
+    "vite": "^6.4.4"
   }
 }

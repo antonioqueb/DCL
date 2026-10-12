@@ -30,8 +30,10 @@ Están registradas en la aplicación (Configuración → Decisiones pendientes) 
 ## Decisiones técnicas (reversibles)
 | Decisión | Motivo |
 |---|---|
-| Node.js sin marco de trabajo; interfaz sin compilación | Menos piezas que mantener y sin paso de construcción |
-| Dependencias: `pdfkit`, `exceljs`, `jszip`, `pdfjs-dist` | PDF, lectura de Excel, paquete portable, vista de planos PDF |
+| Servidor Node.js sin marco de trabajo | Menos piezas que mantener |
+| Interfaz con Astro, Tailwind y tokens de shadcn/ui; componentes propios sin React | Aspecto y velocidad pedidos por el cliente sin reescribir la lógica de pantallas; migrable a islas de React |
+| ECharts cargado bajo demanda | Las gráficas no penalizan la carga inicial |
+| Dependencias: `pdfkit`, `exceljs`, `jszip`, `pdfjs-dist`, `echarts`, `lucide` | PDF, lectura de Excel, paquete portable, vista de planos PDF, gráficas, iconos |
 | Colecciones JSON por generación y manifiesto atómico | Atomicidad y recuperación sin base de datos |
 | Operaciones atómicas síncronas | El proceso único garantiza exclusión sin colas |
 | Esquema único en `schema.js` | Validación, diccionario, CSV y modelo relacional salen de la misma fuente |

@@ -13,6 +13,6 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env) {
     secureCookies: env.DCL_SECURE_COOKIES === '1',
     maxUploadBytes: Number(env.DCL_MAX_UPLOAD_MB || 25) * 1048576,
     keepGenerations: Number(env.DCL_KEEP_GENERATIONS || 10),
-    webDir: path.join(root, 'web'),
+    webDir: path.join(root, 'web', 'dist'),
   };
 }

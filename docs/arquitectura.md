@@ -4,7 +4,7 @@
 
 | Capa | Dónde | Responsabilidad |
 |---|---|---|
-| Interfaz | `web/` | Pantallas adaptables. Previsualiza; no es autoridad de cálculos ni permisos. |
+| Interfaz | `web/` (Astro) | Pantallas adaptables. Previsualiza; no es autoridad de cálculos ni permisos. |
 | API | `server/core/http.js` y rutas en `server/usecases/*.js` | Sesión, contexto de permisos, validación de entradas, idempotencia. |
 | Casos de uso | `server/usecases/` | Flujos y reglas: captura, estimaciones, cierre, pagos, cobranza, gastos, importación. |
 | Dominio | `server/domain/` | Esquema, decimales exactos, fechas, catálogo de permisos. |
@@ -12,6 +12,21 @@
 | Adaptador de archivos | `server/core/store.js` | Colecciones JSON por generación, manifiesto, candado, adjuntos. |
 
 Los casos de uso solo usan `db.get/all/where/by` y `tx.insert/update/archive/remove/event`. No conocen nombres de archivo. Sustituir el adaptador por una base relacional exige implementar esa misma interfaz (ver [migración](migracion.md)).
+
+## Interfaz
+
+- **Astro** compila un sitio estático de una sola página: empaqueta, minimiza y pone huella a cada recurso. El servidor los entrega comprimidos (Brotli o gzip) y con caché de un año; el HTML siempre se revalida.
+- **Tailwind CSS** con los **tokens de shadcn/ui** (estilo "new-york", base neutral, tema claro y oscuro) en `web/src/styles/globals.css`. Tipografía Geist servida localmente.
+- Componentes propios con el aspecto y comportamiento de shadcn/ui, sin marco de trabajo: barra lateral colapsable (Ctrl+B), selector con búsqueda, calendario, menús, diálogos, avisos, insignias y tabla de datos (`web/src/app/ui.js`, `table.js`). Los controles nativos permanecen ocultos como fuente de verdad, de modo que los formularios y su validación no dependen del componente visual.
+- **Apache ECharts** para las gráficas; se descarga solo al abrir una pantalla que la usa.
+- Tablas sin texto doblado: cada listado muestra sus columnas prioritarias y el resto se elige en "Columnas"; lo recortado se lee completo al pasar el cursor o en el detalle.
+- **Facilidad de uso:** el inicio es una bandeja "Mi trabajo" (`GET /api/home/tasks`) ordenada por urgencia; el cierre semanal es un asistente de cuatro pasos; los listados abren el detalle en un panel lateral sin perder la lista (Ctrl + clic lo abre en página completa); los avisos se consultan en un panel desplegable; cada pantalla tiene ayuda en contexto con glosario; los importes se escriben con separador de miles y símbolo de moneda; la tarifa faltante se define desde la propia partida (`POST /api/c-estimates/:id/items/:itemId/rate`); la captura recuerda las ubicaciones recientes y mantiene visibles sus botones en teléfono.
+- No se usan avisos nativos del navegador: las confirmaciones (incluida la de cambios sin guardar) se muestran dentro de la aplicación.
+- No son componentes React de shadcn/ui: se replicó su sistema visual. Si más adelante se requiere la biblioteca original, Astro admite islas de React sin rehacer el resto.
+
+## Reportería
+
+`server/usecases/analytics.js` define 16 conjuntos de datos (avances, mano de obra, obligaciones, desembolsos, gastos, costos, estimaciones al cliente, cobranza, cobros, caja, adicionales, presupuesto, jornadas, insumos, actividad y tiempos del proceso), cada uno con su permiso, sus dimensiones y sus medidas. Una consulta elige dimensión, serie opcional, medidas, periodicidad (día, semana, mes, trimestre, año), rango de fechas, filtros y límite; el servidor aplica el alcance por obra antes de agregar, suma con decimales exactos y reporta cuántos registros no tenían la medida en lugar de contarlos como cero. La biblioteca de reportes predefinidos (`web/src/app/pages/reportes.js`) es una lista de configuraciones sobre ese motor; agregar un reporte es agregar una línea. Los reportes guardados almacenan solo la configuración y se recalculan al abrirse.
 
 ## Almacenamiento
 

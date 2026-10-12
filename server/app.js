@@ -5,7 +5,7 @@ import { Store } from './core/store.js';
 import { AuthStore } from './core/auth.js';
 import { createApp } from './core/http.js';
 
-const MODULES = ['admin', 'catalogs', 'works', 'progress', 'attachments', 'additionals', 'cestimates', 'closes', 'payments', 'budgets', 'kestimates', 'receivables', 'expenses', 'cash', 'supplies', 'reports', 'documents', 'imports', 'exports'];
+const MODULES = ['admin', 'catalogs', 'works', 'progress', 'attachments', 'additionals', 'cestimates', 'closes', 'payments', 'budgets', 'kestimates', 'receivables', 'expenses', 'cash', 'supplies', 'reports', 'analytics', 'documents', 'imports', 'exports'];
 
 export async function buildApp(config, { create = null } = {}) {
   const store = Store.open(config.dataDir, { create, keepGenerations: config.keepGenerations });

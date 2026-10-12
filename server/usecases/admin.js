@@ -50,6 +50,25 @@ export function register(app) {
     return { ok: true };
   });
 
+  // Búsqueda global (paleta de comandos): solo devuelve lo que la persona puede abrir.
+  app.get('/api/search', (c) => {
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); const q = norm(c.query.q).trim(); if (q.length < 2) return { items: [] };
+    const db = c.db, acc = c.acc, out = []; const hit = (...t) => t.some((x) => norm(x).includes(q)); const add = (type, labelText, sub, href) => { if (out.length < 24) out.push({ type, label: labelText, sub, href }); };
+    const internal = acc.audience === 'interno'; const W = (id) => label(db, 'works', id);
+    if (internal) for (const w of db.all('works')) if (acc.inScope('works.view', w.id) && hit(w.name, w.code)) add('Obra', w.name, w.code, `#/obras/${w.id}`);
+    for (const e of db.all('cEstimates')) { const mine = internal ? acc.inScope('cestimates.view', e.workId) : acc.audience === 'contratista' && e.contractorId === acc.partyId && !['borrador', 'revision_interna', 'cancelada'].includes(e.status); if (mine && hit(e.folio, W(e.workId), label(db, 'parties', e.contractorId))) add('Estimación de contratista', e.folio, `${W(e.workId)} · ${label(db, 'parties', e.contractorId)}`, internal ? `#/estimaciones-contratistas/${e.id}` : `#/mis-estimaciones/${e.id}`); }
+    for (const k of db.all('kEstimates')) { const mine = internal ? acc.inScope('kestimates.view', k.workId) : acc.audience === 'cliente' && k.clientId === acc.partyId && k.publishedVersion !== null; if (mine && hit(k.folio, W(k.workId))) add('Estimación al cliente', k.folio, W(k.workId), internal ? `#/estimaciones-clientes/${k.id}` : `#/mis-documentos/${k.id}`); }
+    if (internal) {
+      if (acc.can('payments.view')) { for (const o of db.all('obligations')) if ((o.workId ? acc.inScope('payments.view', o.workId) : acc.canGlobal('payments.view')) && hit(o.folio, label(db, 'parties', o.beneficiaryId))) add('Obligación de pago', o.folio, label(db, 'parties', o.beneficiaryId), `#/pagos/obligacion/${o.id}`);
+        for (const x of db.all('disbursements')) if (acc.canGlobal('payments.view') && hit(x.folio, x.reference)) add('Pago', x.folio, `${label(db, 'parties', x.beneficiaryId)}${x.reference ? ` · ${x.reference}` : ''}`, `#/pagos/desembolso/${x.id}`); }
+      if (acc.canGlobal('expenses.view')) for (const e of db.all('expenses')) if (hit(e.folio, e.description, e.reference, label(db, 'parties', e.supplierId))) add('Gasto', `${e.folio} · ${e.description}`, label(db, 'parties', e.supplierId), `#/gastos/${e.id}`);
+      for (const a of db.all('additionals')) if (acc.inScope('works.view', a.workId) && (acc.can('additionals.report', a.workId) || acc.can('additionals.validate', a.workId)) && hit(a.folio, a.description)) add('Adicional', `${a.folio} · ${a.description}`, W(a.workId), `#/adicionales/${a.id}`);
+      if (acc.can('receivables.view')) for (const r of db.all('receipts')) if (hit(r.folio, r.reference)) add('Cobro', r.folio, label(db, 'parties', r.clientId), `#/cobranza/cobros/${r.id}`);
+      if (acc.can('close.view')) for (const x of db.all('weeklyCloses')) if (hit(x.folio)) add('Cierre semanal', x.folio, null, `#/cierre/emitido/${x.id}`);
+    }
+    return { items: out };
+  });
+
   // ── Usuarios y roles ──
   const userRow = (db, u) => ({ ...pick(u, ['id', 'recordVersion', 'username', 'name', 'email', 'status', 'partyId', 'mustChangePassword']), party: label(db, 'parties', u.partyId), hasPassword: auth.hasPassword(u.id),
     roles: db.by('roleAssignments', 'userId', u.id).filter((a) => !a.archivedAt).map((a) => ({ id: a.id, roleId: a.roleId, role: label(db, 'roles', a.roleId), scope: a.scope, workId: a.workId, work: label(db, 'works', a.workId), validFrom: a.validFrom, validTo: a.validTo })) });

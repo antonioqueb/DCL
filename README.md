@@ -8,6 +8,7 @@ Requiere Node.js 22 o posterior.
 
 ```bash
 npm install
+npm run build     # compila la interfaz (Astro); `npm run demo` y `npm start` lo hacen solos la primera vez
 
 # Demostración con datos ficticios (http://127.0.0.1:4310)
 npm run demo
@@ -22,6 +23,8 @@ En la demostración, la pantalla de acceso muestra un perfil por rol. Los datos 
 | Comando | Qué hace |
 |---|---|
 | `npm run demo` / `npm start` | Servidor de demostración / de operación |
+| `npm run build` | Compila la interfaz a `web/dist` (ejecútelo tras cambiar algo en `web/src`) |
+| `npm run dev:web` | Interfaz en modo desarrollo con recarga (requiere el servidor de demostración encendido) |
 | `npm run demo:reset` | Reconstruye la demostración (solo esa carpeta) |
 | `npm run setup` | Configuración inicial de operación |
 | `npm run backup` (`-- --list`, `-- --verify <respaldo>`) | Respaldo consistente de datos y adjuntos |
@@ -42,7 +45,8 @@ server/
   importers/   lectura de Excel y perfiles de los archivos conocidos
   pdf/         documentos operativos
   seed/        datos base y demostración
-web/           interfaz (sin paso de compilación), instalable
+web/           interfaz: Astro + Tailwind con el sistema visual de shadcn/ui, ECharts; instalable
+  src/app/     pantallas y componentes · src/styles/ tokens y estilos · dist/ sitio compilado
 scripts/       configuración inicial, respaldo, restauración, exportación, documentación
 tests/         recorridos de negocio y criterios de aceptación
 docs/          documentación

@@ -1,6 +1,8 @@
 // Núcleo de la interfaz: llamadas a la API, formato, diálogos, formularios y navegación.
 // La interfaz previsualiza; la autoridad de cálculos y permisos es siempre el servidor.
 
+import { icon } from './ui.js';
+export { icon };
 export const state = { session: null, online: navigator.onLine };
 
 // ── Elementos ──
@@ -56,7 +58,7 @@ export const can = (p) => !!state.session?.permissions?.includes(p);
 export const qs = (o) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== '') p.set(k, v); const s = p.toString(); return s ? `?${s}` : ''; };
 
 // ── Avisos ──
-export function toast(msg, tone = '') { const t = h('div', { class: `toast ${tone}`, role: tone === 'bad' ? 'alert' : 'status' }, msg); document.getElementById('toasts').append(t); setTimeout(() => t.remove(), tone === 'bad' ? 9000 : 4200); }
+export function toast(msg, tone = '') { const t = h('div', { class: `toast ${tone}`, role: tone === 'bad' ? 'alert' : 'status' }, icon(tone === 'bad' ? 'alert' : tone === 'ok' ? 'ok' : 'info'), h('div', {}, msg)); document.getElementById('toasts').append(t); setTimeout(() => t.remove(), tone === 'bad' ? 9000 : 4200); }
 export function errorNote(e) {
   const dta = e.data || {}; const box = h('div', { class: 'note bad', role: 'alert' }, h('b', {}, e.message));
   if (dta.reasons?.length) box.append(h('ul', {}, dta.reasons.map((r) => h('li', {}, r))));
@@ -65,11 +67,11 @@ export function errorNote(e) {
 }
 export function showError(e) { if (e?.silent) return; toast(e.message + (e.data?.reasons?.length ? ` ${e.data.reasons.slice(0, 2).join(' ')}` : '') + (e.data?.fix ? ` ${e.data.fix}` : ''), 'bad'); }
 export const loading = (n = 4) => h('div', { 'aria-busy': 'true', 'aria-label': 'Cargando' }, Array.from({ length: n }, () => h('div', { class: 'skeleton' })));
-export const empty = (title, text, action) => h('div', { class: 'state' }, h('b', {}, title), text || '', action ? h('div', { class: 'actions' }, action) : null);
+export const empty = (title, text, action) => h('div', { class: 'state' }, icon('inbox'), h('b', {}, title), text ? h('span', {}, text) : null, action ? h('div', { class: 'actions' }, action) : null);
 export function stateFor(e, retry) {
-  if (e.status === 403) return h('div', { class: 'state' }, h('b', {}, 'Sin permiso'), 'Su perfil no incluye esta información. Si la necesita, solicítela a dirección.');
-  if (e.status === 404) return h('div', { class: 'state' }, h('b', {}, 'No disponible'), e.message);
-  return h('div', { class: 'state' }, h('b', {}, e.status === 0 ? 'Sin conexión' : 'No se pudo cargar'), e.message, h('div', {}, h('button', { class: 'btn', onclick: retry }, 'Reintentar')));
+  if (e.status === 403) return h('div', { class: 'state' }, icon('shield'), h('b', {}, 'Sin permiso'), h('span', {}, 'Su perfil no incluye esta información. Si la necesita, solicítela a dirección.'));
+  if (e.status === 404) return h('div', { class: 'state' }, icon('inbox'), h('b', {}, 'No disponible'), h('span', {}, e.message));
+  return h('div', { class: 'state' }, icon(e.status === 0 ? 'offline' : 'alert'), h('b', {}, e.status === 0 ? 'Sin conexión' : 'No se pudo cargar'), h('span', {}, e.message), h('div', {}, h('button', { class: 'btn', onclick: retry }, 'Reintentar')));
 }
 // Carga con estados de espera, error y sin permiso.
 export async function load(el, fn, render) { clear(el).append(loading()); try { const data = await fn(); clear(el); await render(data); } catch (e) { if (e instanceof ApiError) clear(el).append(stateFor(e, () => load(el, fn, render))); else { console.error(e); clear(el).append(h('div', { class: 'state' }, h('b', {}, 'Error inesperado'), String(e.message || e))); } } }
@@ -94,13 +96,24 @@ export function field(f, values) {
   else if (f.type === 'check') input = h('input', { id, type: 'checkbox', checked: !!v });
   else if (f.type === 'static') input = h('div', { id }, f.render ? f.render(values) : String(v));
   else input = h('input', { id, type: f.type === 'date' ? 'date' : f.type === 'password' ? 'password' : 'text', value: v, inputmode: f.type === 'decimal' ? 'decimal' : null, autocomplete: f.autocomplete || 'off', placeholder: f.placeholderText || null, max: f.max || null });
+  const errEl = h('span', { class: 'err', id: `${id}-e`, role: 'alert' });
   if (f.required) input.setAttribute('aria-required', 'true'); if (f.disabled) input.disabled = true;
+  let shell = input;
+  if (f.type === 'decimal') {
+    // Dinero y cantidades: separador de miles al salir del campo, número limpio al editar, aviso inmediato si no es válido.
+    const isMoney = f.money ?? (/amount|total|price|subtotal|tax|commission|rate|balance|cost|sale|max|adjustments|retention|amortization/i.test(f.key) && !/pct|taxRate|qty|days|factor/i.test(f.key));
+    const group = (v) => { const m = /^(-?)(\d+)(\.\d+)?$/.exec(v); return m ? `${m[1]}${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${m[3] || ''}` : v; };
+    const raw = () => input.value.trim().replace(/[,$\s]/g, '');
+    input.value = group(String(v)); input.classList.add('num-in');
+    input.addEventListener('focus', () => { input.value = raw(); input.select(); });
+    input.addEventListener('blur', () => { const r = raw(); const bad = r !== '' && !/^-?\d+(\.\d+)?$/.test(r); input.value = bad ? r : group(r); if (errEl) { errEl.textContent = bad ? 'Use un número con punto decimal, por ejemplo 1250.50.' : f.required && r === '' ? 'Dato obligatorio.' : ''; input.setAttribute('aria-invalid', String(bad || (f.required && r === ''))); } });
+    if (isMoney) shell = h('div', { class: 'input-prefix' }, h('span', { 'aria-hidden': 'true' }, '$'), input);
+  }
   input.dataset.key = f.key; if (f.onchange) input.addEventListener(f.type === 'select' || f.type === 'check' || f.type === 'date' ? 'change' : 'input', () => f.onchange(read(input, f), input));
-  const errEl = h('span', { class: 'err', id: `${id}-e` });
-  const lab = f.type === 'check' ? h('label', { class: `f check ${f.wide ? 'wide' : ''}` }, input, h('span', {}, f.label, f.help ? h('span', { class: 'help' }, ` · ${f.help}`) : null)) : h('label', { class: `f ${f.wide || f.type === 'textarea' ? 'wide' : ''}`, for: id }, h('span', {}, f.label, f.required ? ' *' : ''), input, f.help ? h('span', { class: 'help' }, f.help) : null, errEl);
+  const lab = f.type === 'check' ? h('label', { class: `f check ${f.wide ? 'wide' : ''}` }, input, h('span', {}, f.label, f.help ? h('span', { class: 'help' }, ` · ${f.help}`) : null)) : h('label', { class: `f ${f.wide || f.type === 'textarea' ? 'wide' : ''}`, for: id }, h('span', {}, f.label, f.required ? ' *' : ''), shell, f.help ? h('span', { class: 'help' }, f.help) : null, errEl);
   lab.input = input; lab.errEl = errEl; lab.def = f; return lab;
 }
-const read = (input, f) => (f.type === 'check' ? input.checked : f.type === 'decimal' ? input.value.trim().replace(/,/g, '') : input.value.trim());
+const read = (input, f) => (f.type === 'check' ? input.checked : f.type === 'decimal' ? input.value.trim().replace(/[,$\s]/g, '') : input.value.trim());
 export function buildForm(fields, values = {}) {
   const labs = fields.filter(Boolean).map((f) => (f.node ? f.node : field(f, values))); const el = h('div', { class: 'grid' }, labs);
   return { el, labs,
@@ -123,12 +136,17 @@ export function formDialog({ title, text, fields, values = {}, submit, submitLab
         if (e.code === 'conflicto') { const choice = await conflictDialog(e.data, vals); if (choice === 'reapply') { version = e.data.current.recordVersion; toast('Se tomó la versión actual. Revise y vuelva a guardar.'); } else if (choice === 'reload') close('reload'); }
         else { if (e.data?.field) form.setError(e.data.field, e.message); msg.append(e instanceof ApiError ? errorNote(e) : h('div', { class: 'note bad' }, String(e.message || e))); }
       } finally { busy = false; btn.disabled = false; btn.textContent = submitLabel; }
-    } }, h('header', {}, h('h2', {}, title), text ? h('p', {}, text) : null), h('div', { class: 'content' }, form.el, extra ? extra(form) : null, msg), h('footer', {}, h('button', { class: 'btn ghost', type: 'button', onclick: () => confirmLeave(f) && close(null) }, 'Cancelar'), btn));
+    } }, h('header', {}, h('h2', {}, title), text ? h('p', {}, text) : null), h('div', { class: 'content' }, form.el, extra ? extra(form) : null, msg), h('footer', {}, h('button', { class: 'btn ghost', type: 'button', onclick: () => confirmLeave(f, () => close(null)) }, 'Cancelar'), btn));
     f.addEventListener('input', () => { f.dataset.dirty = '1'; });
-    dlg.append(f); dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); if (confirmLeave(f)) close(null); }); document.body.append(dlg); dlg.showModal();
+    dlg.append(f); dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); confirmLeave(f, () => close(null)); }); document.body.append(dlg); dlg.showModal();
   });
 }
-const confirmLeave = (f) => !f.dataset.dirty || window.confirm('Hay cambios sin guardar. ¿Descartarlos?');
+// Confirmación propia (sin el aviso nativo del navegador) al cerrar un formulario con cambios.
+const confirmLeave = (f, leave) => {
+  if (!f.dataset.dirty) return leave(); const old = f.querySelector('.leave'); if (old) { old.querySelector('button').focus(); return; }
+  const bar = h('div', { class: 'leave', role: 'alertdialog', 'aria-label': 'Cambios sin guardar' }, h('span', {}, 'Hay cambios sin guardar.'), h('button', { class: 'btn small', type: 'button', onclick: () => bar.remove() }, 'Seguir editando'), h('button', { class: 'btn small danger', type: 'button', onclick: leave }, 'Descartar cambios'));
+  (f.querySelector('footer') || f).before(bar); bar.querySelector('button').focus();
+};
 // Conflicto: otra persona guardó antes. Se muestran ambas versiones; nada se sobrescribe en silencio.
 function conflictDialog(data, mine) {
   const cur = data.current || {}; const keys = Object.keys(mine).filter((k) => k !== 'recordVersion' && k !== 'reason' && typeof mine[k] !== 'object' && String(mine[k] ?? '') !== String(cur[k] ?? ''));
@@ -144,7 +162,7 @@ export async function act(fn, okMsg) { try { const r = await fn(); if (okMsg) to
 
 // ── Componentes de página ──
 export function page(title, { sub, crumb, actions } = {}) {
-  const body = h('div', {}); const el = h('div', { class: 'page', id: 'contenido', tabindex: '-1' }, h('div', { class: 'head' }, h('div', {}, crumb ? h('div', { class: 'crumb' }, crumb) : null, h('h1', {}, title), sub ? h('p', {}, sub) : null), h('div', { class: 'actions' }, actions || null)), body);
+  const body = h('div', { class: 'pbody' }); const el = h('div', { class: 'page', id: 'contenido', tabindex: '-1' }, h('div', { class: 'head' }, h('div', {}, crumb ? h('div', { class: 'crumb' }, crumb) : null, h('h1', {}, title), sub ? h('p', {}, sub) : null), h('div', { class: 'actions' }, actions || null)), body);
   return { el, body };
 }
 export const card = (title, ...kids) => h('section', { class: 'card' }, title ? h('h2', {}, title) : null, kids);
@@ -153,13 +171,13 @@ export function miniTable(columns, rows, { totals, emptyText = 'Sin registros.',
   if (!rows.length) return h('p', { class: 'muted small' }, emptyText);
   const num = (c) => ['money', 'qty', 'int'].includes(c.type);
   return h('div', { class: 'tablewrap' }, h('table', { class: 'cards-m' }, h('thead', {}, h('tr', {}, columns.map((c) => h('th', { class: num(c) ? 'num' : '', scope: 'col' }, c.label)))),
-    h('tbody', {}, rows.map((r) => h('tr', { class: onRow ? 'link' : '', tabindex: onRow ? '0' : null, onclick: onRow ? () => onRow(r) : null, onkeydown: onRow ? (e) => { if (e.key === 'Enter') onRow(r); } : null }, columns.map((c) => h('td', { class: `${num(c) ? 'num' : 'wrap'}`, 'data-l': c.label }, c.render ? c.render(r) : cell(r[c.key], c)))))),
+    h('tbody', {}, rows.map((r) => h('tr', { class: onRow ? 'link' : '', tabindex: onRow ? '0' : null, onclick: onRow ? () => onRow(r) : null, onkeydown: onRow ? (e) => { if (e.key === 'Enter') onRow(r); } : null }, columns.map((c) => { const v = c.render ? c.render(r) : cell(r[c.key], c); const rich = v && v.nodeType === 1 && !v.classList.contains('chip'); return h('td', { class: num(c) ? 'num' : rich ? 'rich' : '', 'data-l': c.label }, v); })))),
     totals ? h('tfoot', {}, h('tr', {}, columns.map((c, i) => h('td', { class: num(c) ? 'num' : '', 'data-l': c.label }, totals[c.key] !== undefined ? cell(totals[c.key], c) : i === 0 ? 'Total' : '')))) : null));
 }
 export function tabs(items, current) { return h('nav', { class: 'tabs', 'aria-label': 'Secciones' }, items.filter(Boolean).map((t) => h('a', { href: t.href, 'aria-current': t.key === current ? 'page' : null }, t.label))); }
-export const kpi = (c) => h(c.link ? 'a' : 'div', { class: 'kpi', href: c.link || null }, h('span', { class: 't' }, c.n ? `${c.n}. ` : '', c.title || c.label), c.value === null || c.value === undefined ? h('span', { class: 'na' }, 'No disponible') : h('span', { class: 'v' }, c.kind === 'money' ? money(c.value) : c.value, c.unit ? h('span', { class: 'small muted' }, ` ${c.unit}`) : null), c.period ? h('span', { class: 'p' }, c.period) : null, c.detail?.length ? h('ul', {}, c.detail.map((x) => h('li', {}, x))) : null);
+export const kpi = (c) => h(c.link ? 'a' : 'div', { class: 'kpi', href: c.link || null }, h('span', { class: 't' }, h('span', {}, c.title || c.label), c.link ? icon('chevronRight') : null), c.value === null || c.value === undefined ? h('span', { class: 'na' }, c.missing || 'No disponible') : h('span', { class: 'v' }, c.kind === 'money' ? money(c.value) : c.value, c.unit ? h('span', { class: 'small muted' }, ` ${c.unit}`) : null), c.period ? h('span', { class: 'p' }, c.period) : null, c.detail?.length ? h('ul', {}, c.detail.map((x) => h('li', {}, x))) : null);
 export const linkBtn = (label, href, cls = '') => h('a', { class: `btn ${cls}`, href }, label);
-export const btn = (label, onclick, cls = '') => h('button', { class: `btn ${cls}`, type: 'button', onclick }, label);
+export const btn = (label, onclick, cls = '', ico = null) => h('button', { class: `btn ${cls}`, type: 'button', onclick }, ico ? icon(ico) : cls.includes('primary') && /^(Nuev|Agregar|Capturar|Registrar|Cargar|Reportar|Crear)/.test(label) ? icon('plus') : null, label);
 let optCache = {};
 export async function options(sets) { const need = sets.filter((s) => !optCache[s]); if (need.length) Object.assign(optCache, await get(`/api/options?sets=${need.join(',')}`)); return Object.fromEntries(sets.map((s) => [s, optCache[s] || []])); }
 export const resetOptions = () => { optCache = {}; };
@@ -191,7 +209,7 @@ export function uploader({ params = {}, accept = 'image/*,application/pdf', capt
   const input = h('input', { type: 'file', accept, multiple, class: 'sr', onchange: () => { [...input.files].forEach(start); input.value = ''; } });
   const cam = capture ? h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'sr', onchange: () => { [...cam.files].forEach(start); cam.value = ''; } }) : null;
   input.hidden = true; if (cam) cam.hidden = true;
-  const el = h('div', { class: 'stack' }, h('div', { class: 'row' }, cam ? btn('Tomar fotografía', () => cam.click()) : null, btn(label, () => input.click(), 'ghost'), input, cam), h('p', { class: 'small muted' }, 'Las fotografías pendientes no sobreviven si cierra la aplicación: espere la confirmación de cada carga. No se registra ubicación ni fecha de toma que el archivo no declare.'), list);
+  const el = h('div', { class: 'stack' }, h('div', { class: 'row' }, cam ? btn('Tomar fotografía', () => cam.click(), '', 'camera') : null, btn(label, () => input.click(), '', 'clip'), input, cam), h('p', { class: 'small muted' }, 'Las fotografías pendientes no sobreviven si cierra la aplicación: espere la confirmación de cada carga. No se registra ubicación ni fecha de toma que el archivo no declare.'), list);
   el.pendingCount = () => pending.size; return el;
 }
 export function evidenceGrid(items, { onRemove, toggleClient } = {}) {
@@ -199,3 +217,46 @@ export function evidenceGrid(items, { onRemove, toggleClient } = {}) {
   return h('div', { class: 'thumbs' }, items.map((a) => h('div', { class: 'thumb' }, h('a', { href: `/api/attachments/${a.id}/content`, target: '_blank', rel: 'noopener', title: `${a.name} · se abre en otra pestaña` }, a.isImage ? h('img', { src: `/api/attachments/${a.id}/thumb`, alt: a.caption || a.name, loading: 'lazy' }) : h('div', { class: 'ph' }, 'PDF')), h('span', { title: a.name }, a.caption || a.name),
     toggleClient ? h('label', { class: 'f check small' }, h('input', { type: 'checkbox', checked: !!a.clientVisible, onchange: (e) => toggleClient(a, e.target.checked) }), 'Mostrar al cliente') : null, onRemove ? btn('Quitar', () => onRemove(a), 'small ghost') : null)));
 }
+
+// Guía de proceso: en qué paso está el documento y qué sigue (y a quién le toca).
+export function stepper(labels, current) { return h('ol', { class: 'steps', 'aria-label': 'Avance del proceso' }, labels.map((l, i) => h('li', { class: i < current ? 'done' : i === current ? 'now' : '', 'aria-current': i === current ? 'step' : null }, h('span', { class: 'dot' }, i < current ? icon('check') : String(i + 1)), l))); }
+export function nextStep(text, { tone = '', action = null, title = 'Siguiente paso' } = {}) { return h('div', { class: `next ${tone}`, role: 'status' }, h('span', { class: 'ic' }, icon(tone === 'done' ? 'ok' : tone === 'wait' ? 'info' : 'chevronRight')), h('div', { class: 'tx' }, h('b', {}, tone === 'done' ? 'Proceso completo' : tone === 'wait' ? 'En espera' : title), text), action); }
+
+// ── Panel lateral: abre el detalle de un registro sin perder el listado ni sus filtros ──
+export const router = { resolve: null };
+let sheetEl = null;
+export function closeSheet() { if (sheetEl) { const s = sheetEl; sheetEl = null; s.close(); s.remove(); s.onDone?.(); } }
+export function sheet(node, { href = null, onClose = null, label = 'Detalle' } = {}) {
+  closeSheet();
+  const dlg = h('dialog', { class: 'sheet', 'aria-label': label }, h('div', { class: 'sheet-bar' }, href ? h('a', { class: 'btn small', href, onclick: () => closeSheet() }, icon('external'), 'Abrir en página completa') : h('b', {}, label), h('span', { class: 'spacer' }), h('button', { class: 'btn ghost icon small', type: 'button', 'aria-label': 'Cerrar panel', onclick: () => closeSheet() }, icon('x'))), h('div', { class: 'sheet-body' }, node));
+  dlg.onDone = onClose; dlg.addEventListener('cancel', (e) => { e.preventDefault(); if (!document.querySelector('dialog[open]:not(.sheet)')) closeSheet(); }); dlg.addEventListener('click', (e) => { if (e.target === dlg) closeSheet(); });
+  document.body.append(dlg); dlg.showModal(); sheetEl = dlg; return dlg;
+}
+// Abre en el panel la pantalla que corresponde a una dirección interna.
+export async function peek(hash, onClose) {
+  const m = router.resolve?.(hash); if (!m) { location.hash = hash; return; }
+  const box = h('div', {}, loading()); sheet(box, { href: hash, onClose });
+  try { const node = await m.fn(m.params, m.query); box.replaceChildren(node); } catch (e) { box.replaceChildren(e instanceof ApiError ? stateFor(e, () => peek(hash, onClose)) : h('div', { class: 'note bad' }, String(e.message || e))); }
+}
+window.addEventListener('hashchange', () => closeSheet());
+
+// ── Glosario: términos del negocio explicados donde aparecen ──
+export const GLOSSARY = {
+  'Bruto autorizado': 'Importe total autorizado de la estimación o el gasto, antes de descuentos y anticipos.',
+  'Neto por pagar': 'Bruto autorizado menos descuentos autorizados y anticipos aplicados.',
+  'Saldo': 'Lo que falta por pagar o cobrar: el neto menos los pagos o cobros confirmados.',
+  'Pagado confirmado': 'Solo cuenta lo que tesorería confirmó con recibo o referencia. Un pago preparado no es un pago hecho.',
+  'Descuentos': 'Reducciones del pago con soporte y autorización (por ejemplo, cuotas). Nunca se aplican solas.',
+  'Anticipos aplicados': 'Dinero adelantado al contratista que se descuenta de esta liquidación. No es otra salida de dinero.',
+  'Expuesto': 'Costo ya autorizado a pagar cuyo cobro al cliente no está asegurado. No es una pérdida comprobada.',
+  'Evidencia': 'Fotografías o documentos de la medición. "Faltante" significa que el concepto la exige y aún no se cargó.',
+  'Antigüedad': 'Días transcurridos desde la fecha de vencimiento, no desde la captura.',
+  'Versión': 'Cada cambio relevante crea una versión. Una conformidad vale solo para la versión que se aceptó.',
+  'Autorizado': 'Importe congelado al autorizar. No cambia aunque después se modifiquen tarifas o catálogos.',
+  'Cantidad': 'Cantidad vigente: la medición original más los ajustes autorizados.',
+  'Conciliación': 'Indica si el movimiento ya se vinculó con un renglón del estado de cuenta del banco.',
+  'Estado': 'Etapa del documento. Abra el registro para ver qué sigue y a quién le toca.',
+  'Pago': 'Situación de pago, independiente del estado del documento: sin pago, parcial, pagado o con reverso.',
+  'Cobranza': 'Situación de cobro al cliente: sin cobro, parcial o cobrada.',
+  'Facturación': 'Qué parte de la estimación aprobada ya tiene factura registrada. La factura no crea otra cuenta por cobrar.',
+};

@@ -134,6 +134,20 @@ export function setExceptionalPrice(tx, acc, estId, itemId, body) {
   return { id: itemId };
 }
 
+// Define la tarifa que faltaba (nueva versión en el catálogo) y la aplica a la partida pendiente de valorar.
+export function defineRate(tx, acc, estId, itemId, body) {
+  const est = tx.must('cEstimates', estId); acc.require('rates.manage', undefined, 'definir tarifas'); acc.require('cestimates.prepare', est.workId);
+  if (!EDITABLE.includes(est.status)) throw blocked('La estimación ya no admite cambios.');
+  const item = tx.must('cEstimateItems', itemId); if (item.estimateId !== estId || item.amount !== null || !item.conceptId) throw blocked('La partida ya tiene importe o no corresponde a un concepto del catálogo.');
+  const price = d.norm(req(body, ['price']).price, 4); if (!d.isPos(price)) throw invalid('El precio debe ser mayor que cero.', 'price');
+  const period = tx.get('weekPeriods', est.periodId); const scope = body.scope || 'general';
+  tx.insert('rates', { circuit: 'contratacion', conceptId: item.conceptId, unitId: item.unitId, workId: ['obra', 'obra_contratista'].includes(scope) ? est.workId : null, contractorId: ['contratista', 'obra_contratista'].includes(scope) ? est.contractorId : null, price, currency: est.currency, validFrom: body.validFrom || period.startDate, includes: body.includes || null, status: 'vigente', exceptional: false });
+  const rate = resolveRate(tx, { circuit: 'contratacion', conceptId: item.conceptId, unitId: item.unitId, workId: est.workId, contractorId: est.contractorId, date: period.endDate });
+  if (!rate) throw invalid('La vigencia indicada no cubre la semana de la estimación.', 'validFrom', 'Use una fecha de inicio anterior o igual al fin de la semana.');
+  touchItem(tx, est, item, { unitPrice: rate.price, amount: d.lineAmount(item.qty, rate.price), rateSnapshot: rate }, 'Se definió la tarifa del concepto');
+  return { id: itemId, unitPrice: rate.price };
+}
+
 const FLOW = { revision_interna: ['borrador'], revision_contratista: ['revision_interna', 'conciliacion'], borrador: ['revision_interna'], cancelada: ['borrador', 'revision_interna'] };
 export function transition(tx, acc, estId, body) {
   const est = tx.must('cEstimates', estId); acc.require('cestimates.prepare', est.workId);
@@ -378,6 +392,7 @@ export function register(app) {
   app.post('/api/c-estimates/:id/generate', (c) => c.tx('incorporar_avances', (tx) => generate(tx, c.acc, c.params.id, c.body)));
   app.post('/api/c-estimates/:id/items', (c) => c.tx('partida_importe_fijo', (tx) => addFixedItem(tx, c.acc, c.params.id, c.body)));
   app.post('/api/c-estimates/:id/items/:itemId/status', (c) => c.tx('estado_partida', (tx) => setItemStatus(tx, c.acc, c.params.id, c.params.itemId, c.body)));
+  app.post('/api/c-estimates/:id/items/:itemId/rate', (c) => c.tx('tarifa_desde_estimacion', (tx) => defineRate(tx, c.acc, c.params.id, c.params.itemId, c.body)));
   app.post('/api/c-estimates/:id/items/:itemId/price', (c) => c.tx('precio_excepcional', (tx) => setExceptionalPrice(tx, c.acc, c.params.id, c.params.itemId, c.body)));
   app.post('/api/c-estimates/:id/transition', (c) => c.tx('transicion_estimacion', (tx) => transition(tx, c.acc, c.params.id, c.body)));
   app.post('/api/c-estimates/:id/accept', (c) => c.tx('conformidad_contratista', (tx) => accept(tx, c.acc, c.params.id, c.body)));

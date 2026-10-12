@@ -1,6 +1,7 @@
 // Servidor HTTP mínimo: enrutador, sesión por cookie, contexto de permisos, cuerpo JSON o binario,
 // archivos estáticos únicamente desde web/. Nunca se sirven colecciones ni adjuntos por ruta estática.
 import http from 'node:http';
+import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
 import { AppError, unauthenticated, forbidden, invalid } from './errors.js';
@@ -9,7 +10,7 @@ import { toCsv } from './csv.js';
 import * as d from '../domain/decimal.js';
 import { DecimalError } from '../domain/decimal.js';
 
-const MIME = { '.mjs': 'text/javascript; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
+const MIME = { '.woff2': 'font/woff2', '.woff': 'font/woff', '.mjs': 'text/javascript; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
 const COOKIE = 'dcl_sesion';
 
 export function createApp({ store, auth, config, webDir }) {
@@ -42,6 +43,8 @@ export function createApp({ store, auth, config, webDir }) {
     res.end(buf);
   }
 
+  // Estáticos: solo la interfaz compilada. Recursos con huella → caché larga; todo comprimido y memorizado.
+  const staticCache = new Map();
   function serveStatic(req, res, pathname) {
     let rel = decodeURIComponent(pathname); let base = webDir;
     // Visor de PDF para planos: se sirve desde la dependencia instalada, no desde Internet.
@@ -49,9 +52,14 @@ export function createApp({ store, auth, config, webDir }) {
     else if (rel === '/' || !path.extname(rel)) rel = '/index.html';
     const file = path.join(base, path.normalize(rel));
     if (!file.startsWith(base + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(res, 404, { error: 'no_encontrado', message: 'Recurso no encontrado.' });
-    const buf = fs.readFileSync(file);
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': 'no-cache' });
-    res.end(buf);
+    const stat = fs.statSync(file); const ext = path.extname(file); const key = `${file}:${stat.mtimeMs}`;
+    let entry = staticCache.get(key);
+    if (!entry) { const raw = fs.readFileSync(file); const zip = /\.(html|js|mjs|css|svg|json|webmanifest)$/.test(ext) && raw.length > 1024; entry = { raw, gz: zip ? zlib.gzipSync(raw, { level: 9 }) : null, br: zip ? zlib.brotliCompressSync(raw) : null }; staticCache.set(key, entry); }
+    const accept = req.headers['accept-encoding'] || ''; const enc = entry.br && /\bbr\b/.test(accept) ? 'br' : entry.gz && /\bgzip\b/.test(accept) ? 'gzip' : null; const buf = enc === 'br' ? entry.br : enc === 'gzip' ? entry.gz : entry.raw;
+    const immutable = rel.startsWith('/_astro/') || base !== webDir;
+    const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache', Vary: 'Accept-Encoding' };
+    if (enc) headers['Content-Encoding'] = enc;
+    res.writeHead(200, headers); res.end(req.method === 'HEAD' ? undefined : buf);
   }
 
   app.handle = async (req, res) => {
@@ -59,7 +67,7 @@ export function createApp({ store, auth, config, webDir }) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; object-src 'none'; frame-src 'self' blob:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' blob: data:; object-src 'none'; frame-src 'self' blob:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
     if (!url.pathname.startsWith('/api/')) {
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'metodo', message: 'Método no permitido.' });
       return serveStatic(req, res, url.pathname);

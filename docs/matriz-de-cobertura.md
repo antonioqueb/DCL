@@ -24,7 +24,7 @@ Estado: **Hecho** (implementado y con prueba automatizada del flujo), **Hecho s/
 | 19 | Distribución, caja chica, insumos | Prorrateos, Caja chica, Insumos | `expenses.js`, `cash.js`, `supplies.js` | allocationRules, allocationRuns, pettyFunds, pettyMovements, supplies, supplyMovements | Criterios 25–27 | Hecho; prorrateo por regla s/p; indicador por m²: Parcial |
 | 20 | Caja, bancos, conciliación | Caja y bancos, Conciliación, Proyección | `cash.js` | accounts, cashMovements, transfers, reconBatches, bankLines, reconLinks | Criterio 24; conciliación | Hecho; proyección s/p |
 | 21 | Resultados | Resultados, Cierre de periodo | `reports.js` | economicPeriods | Resultado parcial y transferencia | Hecho s/p (resultado final: no se calcula a propósito) |
-| 22 | Inicio y reportes | Inicio por rol, Reportes | `reports.js` | activityLogs | Criterio 28 | Hecho s/p |
+| 22 | Inicio y reportes | Inicio por rol; Reportes: tablero, biblioteca (98 reportes), explorador con ECharts, mis reportes, listados operativos | `reports.js`, `analytics.js` | activityLogs, savedReports | Criterio 28; `d_reporteria` | Hecho |
 | 23 | Documentos y comunicación | Documentos, PDF, enlaces, avisos | `documents.js`, `pdf/render.js` | issuedDocuments, shareLinks, notifications | Criterios 37, 38 | Hecho |
 | 24 | Importación | Importación, Incidencias, Coincidencias | `imports.js`, `importers/` | importBatches, sourceRecords, matchProposals, qualityIssues | Criterios 13, 29, 30; lectura de los 5 libros reales | Parcial: no convierte en documentos operativos; pagos anteriores a 2023 y PDF pendientes |
 | 25 | Casos reales | — | Pruebas e importación | — | Todos los casos reproducidos | Hecho |
