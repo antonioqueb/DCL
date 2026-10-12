@@ -16,7 +16,7 @@
     "restore": "node scripts/restore.js",
     "export": "node scripts/export-package.js",
     "docs:data": "node scripts/gen-docs.js",
-    "test": "node --test --test-concurrency=1 tests/"
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

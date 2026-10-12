@@ -55,7 +55,7 @@ test('Criterios 1–3: permisos efectivos por API y descarga directa, por rol y 
   assert.equal((await sup.try('POST', '/api/progress', { workId: S.work2, locationId: S.loc2, conceptId: S.piso, executionDate: '2026-08-27', qty: '1' })).status, 403); // obra no asignada
   assert.equal((await con.try('POST', `/api/c-estimates/${F.est}/authorize`, {})).status, 403);
   assert.equal((await con.try('PATCH', `/api/progress/${F.entry}`, { qty: '999' })).status, 403);
-  assert.equal((await tes.try('PATCH', `/api/progress/${F.entry}`, { qty: '999' })).status, 409); // validado: solo ajustes; y tesorería no los propone
+  assert.equal((await tes.try('PATCH', `/api/progress/${F.entry}`, { qty: '999' })).status, 403); // tesorería no modifica cantidades de ejecución
   assert.equal((await tes.try('POST', `/api/progress/${F.entry}/adjustments`, { qtyDelta: '-1', reason: 'cuadrar el pago' })).status, 403);
   assert.equal((await adm.try('POST', `/api/disbursements/${F.pay}/reverse`, { reason: 'no debería poder' })).status, 403); // administración técnica ≠ aprobación financiera
   assert.equal((await adm.try('POST', '/api/closes', { periodId: S.period })).status, 403);
@@ -106,19 +106,19 @@ test('Criterios 5, 6, 8, 10: acumulados, ajustes negativos, partida sin tarifa y
   await con.post(`/api/c-estimates/${est.id}/observe`, { itemId: obsItem.id, proposedQty: '5', text: 'Faltó un tramo' });
   const au = await L.post(`/api/c-estimates/${est.id}/authorize`, { partial: true }); doc = await L.get(`/api/c-estimates/${est.id}`);
   assert.equal(au.excluded, 2); assert.deepEqual(doc.items.map((i) => i.status).sort(), ['autorizada', 'autorizada', 'diferida', 'diferida']);
-  assert.equal(au.authorizedTotal, '1840.00'); // canto 5.00 × 80 + impermeabilización 12 × 120
+  assert.equal(au.authorizedTotal, '2640.00'); // canto en planta baja (10 + 6.5 − 1.5) × 80 + impermeabilización 12 × 120
   // Lo diferido queda disponible para otro documento; no se perdió ni se pagó.
   assert.equal((await L.get(`/api/progress/${o.id}`)).paidQty, '0.0000');
 });
 
 test('Criterios 33–35 y recorridos 6 y 7: edición concurrente, idempotencia, segunda instancia y reinicio', async (t) => {
-  const env = await startEnv(); const S = await scenario(env); const L = S.lucia, sup = await env.as('supervisor'), luis = await env.as('coordinacion');
+  const env = await startEnv(); t.after(() => env.stop()); const S = await scenario(env); const L = S.lucia, sup = await env.as('supervisor'), luis = await env.as('coordinacion');
   const e = await sup.post('/api/progress', { workId: S.work, locationId: S.pb, conceptId: S.piso, contractorId: S.contractor, executionDate: '2026-08-27', qty: '10', submit: true });
   const v = (await sup.get(`/api/progress/${e.id}`)).recordVersion;
   // Dos personas editan el mismo registro con la misma versión: la segunda recibe el conflicto con ambas versiones.
   assert.equal((await sup.try('PATCH', `/api/progress/${e.id}`, { qty: '11', recordVersion: v })).status, 200);
   const c2 = await luis.try('PATCH', `/api/progress/${e.id}`, { qty: '12', recordVersion: v });
-  assert.equal(c2.status, 409); assert.equal(c2.data.error, 'conflicto'); assert.equal(c2.data.current.qty, '11.0000'); assert.equal(c2.data.attempted.qty, '12');
+  assert.equal(c2.status, 409); assert.equal(c2.data.error, 'conflicto'); assert.equal(c2.data.current.qty, '11.0000'); assert.equal(c2.data.attempted.qty, '12.0000');
   assert.equal((await L.get(`/api/progress/${e.id}`)).qty, '11.0000'); // sin pérdida silenciosa
   assert.equal((await luis.try('PATCH', `/api/progress/${e.id}`, { qty: '12', recordVersion: c2.data.current.recordVersion })).status, 200);
   // Reintento con la misma clave: no duplica el avance.
@@ -154,8 +154,8 @@ test('Criterios 31, 39 y recorrido 8: respaldo restaurado y paquete portable (JS
   // Un respaldo alterado no supera la validación.
   const victim = path.join(bdir, 'collections', 'obligations.json'); fs.writeFileSync(victim, fs.readFileSync(victim, 'utf8').replace('"grossAmount":"2', '"grossAmount":"3')); assert.ok(readBackup(bdir).problems.length > 0);
   // Paquete portable: IDs, relaciones, versiones, historial y archivos, por JSON y por CSV.
-  const { buffer, manifest } = await exportPackage(env.store, {}); assert.equal(manifest.dataset, 'demo'); assert.ok(!JSON.stringify(Object.keys(manifest.files)).includes('auth'));
-  const norm = (st) => JSON.stringify([...st.dump()].map(([k, v]) => [k, [...v].sort((a, c) => (a.id < c.id ? -1 : 1))]).sort());
+  const { buffer, manifest } = await exportPackage(env.store, {}); assert.equal(manifest.dataset, 'demo'); assert.ok(!/secure|credential|session/i.test(JSON.stringify(Object.keys(manifest.files))));
+  const norm = (st) => JSON.stringify([...st.dump()].filter(([, v]) => v.length).map(([k, v]) => [k, [...v].sort((a, c) => (a.id < c.id ? -1 : 1))]).sort());
   for (const source of ['json', 'csv']) { const { store } = await importPackageInto(buffer, tmp(`dcl-pkg-${source}-`), { source }); assert.equal(norm(store), norm(env.store), `paquete por ${source}`); assert.equal(store.verifyAudit().ok, true); assert.deepEqual(validateAll(store.view()), []); assert.equal(store.readBlob(env.store.view().get('attachments', F.photo).sha256).equals(TINY_JPG), true); store.close(); }
   // El paquete no contiene contraseñas ni sesiones.
   assert.ok(!buffer.toString('latin1').includes('scrypt'));
@@ -222,9 +222,10 @@ test('Criterios 13, 29 y 30: importación con datos de prueba (hojas ocultas, er
   assert.equal(sim.totals.checked, 4); assert.equal(sim.totals.withDifference, 0);
   // Confirmación idempotente y recarga del mismo archivo.
   assert.equal((await adm.try('POST', `/api/imports/${b1.id}/confirm`, {})).status, 409); // falta estrategia de arranque
-  const c1 = await adm.post(`/api/imports/${b1.id}/confirm`, { strategy: 'solo_evidencia', masters: ['works'] }); assert.equal(c1.written, 16); assert.equal(c1.created.works, 1); // "Balcones" ≠ obra de prueba; la oculta se crea... 
+  const c1 = await adm.post(`/api/imports/${b1.id}/confirm`, { strategy: 'solo_evidencia', masters: ['works'] }); assert.equal(c1.written, 16); assert.equal(c1.created.works, 2); // las dos hojas (también la oculta) son obras que aún no existían
   const c2 = await adm.post(`/api/imports/${b1.id}/confirm`, { strategy: 'solo_evidencia' }); assert.equal(c2.already, true); assert.equal(c2.written, 0);
-  assert.equal((await up('PRUEBA_Estimaciones.xlsx', await est.xlsx.writeBuffer())).already ?? false, false); // bytes distintos (marca de tiempo): es otro lote…
+  assert.equal((await up('PRUEBA_Estimaciones.xlsx', await est.xlsx.writeBuffer())).already, true); // el mismo archivo abre el lote existente
+  est.worksheets[0].getCell('A1').value = 'copia guardada otro día'; await up('PRUEBA_Estimaciones_copia.xlsx', await est.xlsx.writeBuffer()); // otro archivo con los mismos registros…
   const lots = (await adm.get('/api/imports')).items; const b1b = lots.find((x) => x.id !== b1.id); const sim2 = await adm.post(`/api/imports/${b1b.id}/simulate`); assert.equal(sim2.counts.altas, 0); assert.equal(sim2.counts.coincidencias, 16); // …pero no duplica registros
   assert.equal((await adm.post(`/api/imports/${b1b.id}/confirm`, { strategy: 'solo_evidencia' })).written, 0); assert.equal(env.store.view().count('sourceRecords'), 16);
   // Flujos de prueba: la misma semana y obra por 14,360.50 + 750 = 15,110.50 se propone como un solo hecho, no como otro costo.

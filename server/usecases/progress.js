@@ -41,7 +41,8 @@ export function budgetContext(db, e) {
 
 function prepare(tx, acc, input, existing) {
   const work = tx.must('works', input.workId, 'La obra');
-  acc.require('progress.capture', work.id, 'capturar avances');
+  // Captura quien tiene la obra asignada; quien revisa puede corregir una captura existente.
+  if (!(existing && acc.can('progress.validate', work.id))) acc.require('progress.capture', work.id, 'capturar avances');
   if (!['planeacion', 'activa', 'cierre_operativo'].includes(work.status)) throw blocked(`La obra está en estado "${work.status}" y no admite nuevas capturas.`, [], 'Solicite a dirección reactivar la obra.');
   const loc = tx.must('locations', input.locationId, 'La ubicación');
   if (loc.workId !== work.id) throw invalid('La ubicación no pertenece a la obra seleccionada.', 'locationId', 'Elija una ubicación de esta obra.');
@@ -100,8 +101,8 @@ export function createEntry(tx, acc, input) {
 
 export function updateEntry(tx, acc, id, input, expectedVersion) {
   const cur = tx.must('progressEntries', id);
-  if (!['borrador', 'reportado', 'rechazado'].includes(cur.status)) throw blocked('Un avance validado no se edita.', [], 'Registre un ajuste vinculado, con motivo y autorización.');
   if (cur.authorId !== acc.user.id && !acc.can('progress.validate', cur.workId)) throw forbidden('Solo quien capturó o quien revisa puede corregir este avance.');
+  if (!['borrador', 'reportado', 'rechazado'].includes(cur.status)) throw blocked('Un avance validado no se edita.', [], 'Registre un ajuste vinculado, con motivo y autorización.');
   const merged = { ...cur, ...input, workId: cur.workId };
   if (input.generator === undefined) merged.generator = tx.by('generatorLines', 'entryId', id).sort((a, b) => a.sortOrder - b.sortOrder);
   if (cur.mode === 'acumulado' && input.qty === undefined && input.generator === undefined) merged.qty = cur.cumulativeMeasured;

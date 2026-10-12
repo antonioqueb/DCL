@@ -66,6 +66,7 @@ export function register(app) {
   app.get('/api/receipts/:id', (c) => { guard(c); const r = c.db.get('receipts', c.params.id); if (!r) throw notFound(); return { ...rRow(c.db, r), applications: c.db.by('receiptApplications', 'receiptId', r.id).map((a) => ({ ...pick(a, ['id', 'amount', 'status', 'kEstimateId']), estimate: label(c.db, 'kEstimates', a.kEstimateId, 'folio') })), advance: c.db.by('clientAdvances', 'receiptId', r.id).map((a) => ({ id: a.id, amount: a.amount, balance: clientAdvanceBalance(c.db, a) }))[0] || null }; });
   app.post('/api/receipts', (c) => c.tx('registro_cobro', (tx) => {
     guard(c, 'receipts.register'); const b = req(c.body, ['date', 'accountId', 'clientId', 'grossAmount']); const kind = b.kind || 'cobro';
+    if (!['cobro', 'anticipo'].includes(kind)) throw blocked('La devolución de dinero al cliente todavía no tiene flujo propio.', [], 'Mientras tanto, revierta el cobro o el anticipo de origen con su motivo.');
     const gross = d.norm(b.grossAmount); if (!d.isPos(gross)) throw invalid('El importe debe ser mayor que cero.', 'grossAmount');
     const commission = b.commission === undefined || b.commission === '' || b.commission === null ? null : d.norm(b.commission);
     if (commission !== null && (d.isNeg(commission) || d.gte(commission, gross))) throw invalid('La comisión debe ser menor que el importe bruto.', 'commission');

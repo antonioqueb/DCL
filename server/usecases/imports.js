@@ -46,9 +46,9 @@ function simulate(db, batch, a) {
 const workAliases = (db) => setting(db, 'import.workAliases', {}) || {};
 const canonWork = (db, name) => { const n = N(name); const al = workAliases(db); return N(al[n] || n); };
 // Coincidencias entre archivos: el mismo hecho en estimaciones, pagos y flujos se vincula; no se importa tres veces.
-function crossMatch(tx) {
+function crossMatch(tx, includeBatchId = null) {
   const groups = { estimaciones: new Map(), pagos: new Map(), flujos: new Map() }; const put = (m, k, amount, ref) => { const g = m.get(k) || { amount: '0.00', refs: 0, sample: ref }; g.amount = d.add(g.amount, amount); g.refs++; m.set(k, g); };
-  const confirmed = tx.all('importBatches').filter((b) => b.status === 'confirmado'); const ingresos = [], flu = [];
+  const confirmed = tx.all('importBatches').filter((b) => b.status === 'confirmado' || b.id === includeBatchId); const ingresos = [], flu = [];
   for (const b of confirmed) for (const r of tx.by('sourceRecords', 'batchId', b.id)) { const x = r.data;
     if (r.kind === 'avance_semanal' && x.amount && x.year) put(groups.estimaciones, `${canonWork(tx, x.work)}|${x.year}|${x.week}`, x.amount, r);
     else if (r.kind === 'partida_pago' && x.amount) put(groups.pagos, `${canonWork(tx, x.work)}|${x.year}|${x.week}`, x.amount, r);
@@ -120,7 +120,7 @@ export function register(app) {
           let code; do { code = `P${String(++n).padStart(3, '0')}`; } while (tx.by('parties', 'code', code).length);
           const rec = tx.insert('parties', { code, name: p.name, legalName: p.legalName || null, normalizedName: k, isClient: !!p.isClient, isSupplier: !!p.isSupplier, isContractor: !!p.isContractor, status: 'activo', sourceReference: `lote:${b.id}` }); created.parties++;
           if (p.alias && !tx.by('partyAliases', 'normalizedAlias', N(p.alias)).length) tx.insert('partyAliases', { partyId: rec.id, alias: p.alias, normalizedAlias: N(p.alias) }); } }
-      const cross = crossMatch(tx);
+      const cross = crossMatch(tx, b.id);
       tx.update('importBatches', b.id, { status: 'confirmado', strategy, confirmedAt: tx.now, summary: { ...b.summary, confirmation: { written, matched, changed, created, cross, note: strategy === 'solo_evidencia' ? 'Los registros quedan como origen conciliable; no generan saldos ni movimientos.' : 'Los registros normalizados quedan disponibles; su conversión en saldos o movimientos requiere la conciliación de apertura.' } } });
       tx.event('importacion_confirmada', { collection: 'importBatches', objectId: b.id, detail: { written, matched, changed, created, cross, strategy } });
       return { id: b.id, written, matched, changed, created, cross };

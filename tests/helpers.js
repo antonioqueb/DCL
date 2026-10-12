@@ -20,7 +20,7 @@ export async function startEnv({ dir } = {}) {
     as: async (username) => { const c = client(base); await c.login(username, PASSWORD); return c; },
     anon: () => client(base),
     user: (o) => createUser(app.store, app.auth, { password: PASSWORD, ...o }),
-    stop: async () => { await new Promise((r) => server.close(r)); server.closeAllConnections?.(); app.store.close(); },
+    stop: async () => { if (env.stopped) return; env.stopped = true; server.closeAllConnections?.(); await new Promise((r) => server.close(r)); app.store.close(); },
   };
   return env;
 }
