@@ -3,6 +3,7 @@
 // exportación y reportes guardados. Todo se calcula en el servidor con el alcance de quien consulta.
 import { h, clear, get, post, del, api, can, page, card, kpi, miniTable, tabs, btn, linkBtn, money, qty, date, load, formDialog, dialog, toast, showError, empty, today, go, icon, parseHash, state } from '../core.js';
 import { bars, lines, donut } from '../charts.js';
+import { menu } from '../ui.js';
 
 const AREA_ICON = { 'Operación': 'ruler', 'Mano de obra': 'hardhat', Pagos: 'banknote', Clientes: 'sheet', Costos: 'receipt', 'Caja y bancos': 'landmark', Control: 'shield' };
 const CHARTS = { bar: 'Barras', stack: 'Apiladas', hbar: 'Horizontales', line: 'Líneas', area: 'Área', donut: 'Dona', table: 'Solo tabla' };
@@ -185,7 +186,7 @@ async function explorar(_, query) {
       d0.hasDate ? h('label', { class: 'f' }, 'Desde', h('input', { type: 'date', value: cfg.from || '', onchange: (e) => change({ from: e.target.value, quick: 'x' }, true) })) : null,
       d0.hasDate ? h('label', { class: 'f' }, 'Hasta', h('input', { type: 'date', value: cfg.to || '', onchange: (e) => change({ to: e.target.value, quick: 'x' }, true) })) : null,
       sel('Mostrar', cfg.limit || 15, [5, 10, 15, 25, 50, 100].map((n) => ({ id: n, label: `Primeros ${n}` })), (v) => change({ limit: Number(v) }))),
-      h('div', { class: 'row' }, seg, d0.hasDate ? quick : null, h('span', { class: 'tools spacer' }), btn('Filtro', addFilter, 'small', 'filter'), btn('Guardar', save, 'small', 'plus'), btn('Exportar', exportCsv, 'small', 'download')), chips));
+      h('div', { class: 'row' }, seg, d0.hasDate ? quick : null, h('span', { class: 'tools spacer' }), btn('Filtro', addFilter, 'small', 'filter'), btn('Guardar', save, 'small', 'plus'), (() => { const b = btn('Exportar', () => menu(b, [{ label: 'PDF con gráfica y detalle', icon: 'fileText', onSelect: () => exportAs('pdf') }, { label: 'CSV para hoja de cálculo', icon: 'download', onSelect: () => exportAs('csv') }]), 'small', 'download'); return b; })()), chips));
     drawChips();
   }
   async function values() { if (!VALUES.has(cfg.dataset)) VALUES.set(cfg.dataset, (await get(`/api/analytics/datasets/${cfg.dataset}/values`)).values); return VALUES.get(cfg.dataset); }
@@ -201,7 +202,7 @@ async function explorar(_, query) {
     const r = await formDialog({ title: 'Guardar reporte', text: 'Queda en "Mis reportes" con esta configuración. Los datos se calculan cada vez que se abre.', fields: [{ key: 'name', label: 'Nombre', required: true, value: cfg.title || `${ds().title} por ${last?.groupLabel || ''}`.trim(), wide: true }, { key: 'description', label: 'Descripción', type: 'textarea' }, { key: 'shared', label: 'Compartir con el equipo (cada quien verá solo lo que su perfil permite)', type: 'check' }], submit: (v) => post('/api/analytics/saved', { ...v, config: { ...cfg, title: v.name } }) });
     if (r) toast('Reporte guardado en "Mis reportes".', 'ok');
   }
-  async function exportCsv() { try { const res = await api('POST', '/api/analytics/export', cfg, { raw: true }); const blob = await res.blob(); const a = h('a', { href: URL.createObjectURL(blob), download: `${cfg.title || cfg.dataset}.csv` }); document.body.append(a); a.click(); a.remove(); } catch (e) { showError(e); } }
+  async function exportAs(format) { const tab = format === 'pdf' ? window.open('', '_blank') : null; try { const res = await api('POST', '/api/analytics/export', { ...cfg, format }, { raw: true }); const url = URL.createObjectURL(await res.blob()); if (tab) { tab.location = url; return; } const a = h('a', { href: url, download: `${cfg.title || cfg.dataset}.${format}` }); document.body.append(a); a.click(); a.remove(); } catch (e) { tab?.close(); showError(e); } }
   async function drill(row, seriesName) {
     if (!row || row.key === '__otros') { toast('"Otros" agrupa varios valores: aumente "Mostrar" para verlos por separado.'); return; }
     const filters = { ...cfg.filters, [cfg.groupBy]: [row.key] }; const s = cfg.seriesBy && last?.series?.find((x) => String(x.name).replace(' (DEMO)', '') === seriesName); if (s) filters[cfg.seriesBy] = [s.key];

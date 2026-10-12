@@ -28,6 +28,8 @@ Además:
 - **Mejoras de facilidad de uso (revisadas con clics en el navegador):** bandeja "Mi trabajo", panel lateral de detalle, panel de avisos, ayuda en contexto, asistente de cierre (pasos 1, 3 y 4), formato de importes, confirmación propia de cambios sin guardar y "Definir tarifa" de punta a punta (la partida pasó de pendiente a valorada y la estimación generó versión nueva).
 - **Tamaño de teléfono (390 × 844, Chrome sin interfaz con emulación táctil):** 14 pantallas como Supervisor, Dirección, Contratista y Cliente sin desbordes horizontales, sin errores de consola y con todos los botones de al menos 40 px de alto.
 - **Revisión automática de nombres accesibles:** en 17 pantallas principales no quedó ningún botón, enlace o campo sin nombre.
+- **PDF rediseñados:** se generaron desde la demostración y se revisaron a la vista estimación de contratista, recibo de pago, estimación al cliente, estado de cuenta, reporte de costos, dos reportes del explorador (barras y líneas) y dos listados. No se revisaron a la vista cierre semanal, instrucción de pago, presupuesto, aditiva, generadores ni expediente con fotografías reales.
+- **Inicio reorganizado:** revisado como Dirección y Supervisor en escritorio y como Dirección a tamaño de teléfono, sin errores de consola.
 
 ## Lo que NO se probó o se probó a medias
 - **Explorador de reportes**: tablero, biblioteca y explorador revisados en pantalla; el desglose al pulsar una barra, el diálogo de filtros y el guardado se probaron por API, no con clics.

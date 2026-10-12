@@ -7,6 +7,8 @@ import path from 'node:path';
 import { AppError, unauthenticated, forbidden, invalid } from './errors.js';
 import { buildAccess } from './auth.js';
 import { toCsv } from './csv.js';
+import { renderPdf } from '../pdf/render.js';
+import { fmtDate, fmtInstant } from '../domain/dates.js';
 import * as d from '../domain/decimal.js';
 import { DecimalError } from '../domain/decimal.js';
 
@@ -165,6 +167,16 @@ export function listResult(c, rows, columns, { search, defaultSort, name = 'list
   for (const col of columns) if (col.total) {
     const vals = out.map((r) => r[col.key]).filter((v) => v !== null && v !== undefined && v !== '');
     totals[col.key] = { value: d.sum(vals, col.type === 'qty' ? 4 : 2), missing: out.length - vals.length };
+  }
+  if (q.format === 'pdf') {
+    // Listado impreso: respeta filtros, orden y las columnas visibles en pantalla.
+    const want = q.cols ? q.cols.split(',') : null; const cols = (want ? columns.filter((x) => want.includes(x.key)) : columns).filter((x) => x.key && x.label).slice(0, 14); const use = cols.length ? cols : columns.slice(0, 10);
+    const MAX = 1500; const title = String(q.title || name).slice(0, 90); const active = Object.keys(q).filter((k) => k.startsWith('f.') && q[k] !== '').length;
+    const model = { title, audienceLabel: 'Listado · uso interno', subtitle: `Generado el ${fmtInstant(new Date().toISOString())}`, footer: 'Listado interno de DCL Instalaciones con los registros vigentes al momento de generarlo. No es un documento contable ni fiscal.',
+      meta: [['Registros', String(out.length)], ['Periodo', dateField && (q.from || q.to) ? `${q.from ? fmtDate(q.from) : 'inicio'} a ${q.to ? fmtDate(q.to) : 'hoy'}` : 'Sin acotar'], ['Búsqueda', q.q || 'Sin búsqueda'], ['Filtros', active ? `${active} filtro(s) aplicados` : 'Sin filtros']],
+      highlights: use.filter((x) => x.total).slice(0, 4).map((x, i) => [`Total ${x.label.toLowerCase()}`, totals[x.key].value, x.type, i === 0 ? 'primary' : undefined]),
+      sections: [{ title: 'Detalle', columns: use, rows: out.slice(0, MAX), totals: use.filter((x) => x.total).map((x) => [`Total ${x.label.toLowerCase()}`, totals[x.key].value, x.type]), note: [out.length > MAX ? `Se muestran los primeros ${MAX} de ${out.length} registros; exporte a CSV para el conjunto completo.` : null, ...use.filter((x) => x.total && totals[x.key].missing).map((x) => `${totals[x.key].missing} registro(s) sin "${x.label}" no se sumaron como cero.`)].filter(Boolean).join(' ') || null }] };
+    return renderPdf(model).then((buffer) => ({ __file: { buffer, mime: 'application/pdf', name: `${title}.pdf`, inline: true } }));
   }
   if (q.format === 'csv') {
     return { __file: { buffer: Buffer.from('﻿' + toCsv(out, columns, { human: true }), 'utf8'), mime: 'text/csv; charset=utf-8', name: `${name}.csv` } };

@@ -24,6 +24,13 @@ Los casos de uso solo usan `db.get/all/where/by` y `tx.insert/update/archive/rem
 - No se usan avisos nativos del navegador: las confirmaciones (incluida la de cambios sin guardar) se muestran dentro de la aplicación.
 - No son componentes React de shadcn/ui: se replicó su sistema visual. Si más adelante se requiere la biblioteca original, Astro admite islas de React sin rehacer el resto.
 
+## Documentos PDF
+
+- Un solo generador (`server/pdf/render.js`, PDFKit) dibuja todos los PDF a partir del mismo modelo que alimenta la pantalla y el CSV, con la tipografía de la interfaz incrustada (Geist; si falta el paquete se usa Helvetica).
+- Cada documento lleva encabezado con marca, folio y estado, datos generales en rejilla, cifras principales, tablas con ancho de columna ajustado al contenido (cifras, fechas y estados nunca se parten; el encabezado se repite en cada página), bloque de totales, notas, líneas de firma, evidencias en retícula y pie con paginación. Con ocho columnas o más la hoja se pone horizontal.
+- Los reportes del explorador se exportan a PDF con su gráfica vectorial (barras, columnas o líneas) y el detalle; cualquier listado se exporta a PDF con sus filtros, orden y columnas visibles (`format=pdf`).
+- Las copias ya emitidas no cambian: son inmutables. El diseño nuevo aplica a vistas previas, emisiones nuevas y regeneraciones.
+
 ## Reportería
 
 `server/usecases/analytics.js` define 16 conjuntos de datos (avances, mano de obra, obligaciones, desembolsos, gastos, costos, estimaciones al cliente, cobranza, cobros, caja, adicionales, presupuesto, jornadas, insumos, actividad y tiempos del proceso), cada uno con su permiso, sus dimensiones y sus medidas. Una consulta elige dimensión, serie opcional, medidas, periodicidad (día, semana, mes, trimestre, año), rango de fechas, filtros y límite; el servidor aplica el alcance por obra antes de agregar, suma con decimales exactos y reporta cuántos registros no tenían la medida en lugar de contarlos como cero. La biblioteca de reportes predefinidos (`web/src/app/pages/reportes.js`) es una lista de configuraciones sobre ese motor; agregar un reporte es agregar una línea. Los reportes guardados almacenan solo la configuración y se recalculan al abrirse.

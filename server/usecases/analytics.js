@@ -1,10 +1,11 @@
 // Reportería avanzada: motor de análisis sobre conjuntos de datos con dimensiones y medidas declaradas.
 // El alcance por obra y los permisos se aplican ANTES de agregar. Las sumas usan decimales exactos.
 // Un dato faltante no se suma como cero: se informa cuántos registros no tenían la medida.
+import { renderPdf } from '../pdf/render.js';
 import * as d from '../domain/decimal.js';
 import { toCsv } from '../core/csv.js';
 import { invalid, notFound, forbidden } from '../core/errors.js';
-import { localDate, weekOf, diffDays } from '../domain/dates.js';
+import { localDate, weekOf, diffDays, fmtDate } from '../domain/dates.js';
 import { label, locationPath, effectiveQty, allocatedQty, inWorkScope, req } from './common.js';
 import { obligationState, receivableState, PAY_STATUS } from './ledger.js';
 import { tracking } from './budgets.js';
@@ -162,6 +163,16 @@ export function register(app) {
     return { columns, total: sel.length, items: sel.slice(0, 300).map((r) => ({ ...r, href: r._href })) };
   }, { read: true });
   app.post('/api/analytics/export', (c) => { const r = run(c, { ...c.body, limit: 200 }); const columns = [{ key: 'label', label: r.groupLabel }, ...r.measures.map((m) => ({ key: m.key, label: m.label, type: m.type === 'count' ? 'int' : m.type === 'avg' ? 'qty' : m.type })), { key: 'count', label: 'Registros', type: 'int' }];
+    if (c.body.format === 'pdf') { const q = c.body; const { ds } = dataset(c, q.dataset); const time = r.groupBy === '_periodo'; const main = r.measures[0]; const vt = (m) => (m.type === 'count' ? 'int' : m.type === 'avg' ? 'qty' : m.type); const plain = r.rows.filter((x) => x.key !== '__otros'); const hasCount = r.measures.some((m) => m.type === 'count');
+      const kind = q.chart === 'table' ? null : q.chart === 'line' || q.chart === 'area' ? 'line' : time ? 'column' : 'hbar'; const src = r.series ? plain : r.rows;
+      const filters = Object.entries(q.filters || {}).filter(([, v]) => v?.length).map(([k, v]) => `${k === '_periodo' ? 'Periodo' : ds.dims.find((x) => x.key === k)?.label || k}: ${v.map((x) => dimLabel(ds, k, x)).slice(0, 4).join(', ')}${v.length > 4 ? ` y ${v.length - 4} más` : ''}`);
+      const title = String(q.title || `${r.title} por ${r.groupLabel.toLowerCase()}`).slice(0, 90);
+      const model = { title, audienceLabel: 'Reporte · uso interno', subtitle: `${r.title} · datos al ${fmtDate(r.asOf)}`, footer: 'Reporte interno de DCL Instalaciones calculado con los registros vigentes a la fecha de corte. No es un documento contable ni fiscal.',
+        meta: [['Qué se mide', r.measures.map((m) => m.label).join(', ')], ['Agrupado por', r.groupLabel + (r.seriesBy ? ` y ${r.seriesBy === '_periodo' ? 'periodo' : ds.dims.find((x) => x.key === r.seriesBy)?.label.toLowerCase()}` : '')], ['Periodo', q.from || q.to ? `${q.from ? fmtDate(q.from) : 'inicio'} a ${q.to ? fmtDate(q.to) : 'hoy'}` : 'Todo el historial'], ['Filtros', filters.length ? filters.join(' · ') : 'Sin filtros']],
+        highlights: [...r.measures.slice(0, 3).map((m, i) => [m.label, r.totals[m.key], vt(m), i === 0 ? 'primary' : undefined]), ...(hasCount ? [] : [['Registros', String(r.records), 'text']])],
+        sections: [...(kind && src.length ? [{ title: kind === 'hbar' ? `${main.label} por ${r.groupLabel.toLowerCase()}` : `Evolución de ${main.label.toLowerCase()}`, chart: { type: kind, valueType: vt(main), categories: src.map((x) => x.label), series: r.series ? r.series.map((sr) => ({ name: sr.name, data: sr.data })) : [{ name: main.label, data: src.map((x) => x[main.key]) }] } }] : []),
+          { title: 'Detalle', columns: hasCount ? columns.filter((x) => x.key !== 'count') : columns, rows: r.rows, totals: r.measures.filter((m) => m.type !== 'avg').map((m) => [`Total ${m.label.toLowerCase()}`, r.totals[m.key], vt(m)]), note: r.warnings.join(' ') || null }] };
+      return renderPdf(model).then((buffer) => ({ __file: { buffer, mime: 'application/pdf', name: `${title}.pdf`, inline: true } })); }
     return { __file: { buffer: Buffer.from('﻿' + toCsv(r.rows.map((x) => ({ ...x, count: x.count })), columns, { human: true }), 'utf8'), mime: 'text/csv; charset=utf-8', name: `${r.dataset}.csv` } }; }, { read: true });
 
   // Reportes guardados por cada persona (y compartidos con el equipo).

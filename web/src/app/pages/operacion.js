@@ -7,32 +7,41 @@ import { bars, lines, donut } from '../charts.js';
 
 // ───────── Inicio por rol ─────────
 async function home() {
-  const p = page('Inicio', { sub: state.session.audience === 'interno' ? 'Pendientes de su perfil. Cada tarjeta abre su detalle.' : 'Documentos que requieren su revisión.' });
-  const inbox = h('div', {}); p.body.append(inbox);
+  const ses = state.session; const internal = ses.audience === 'interno'; const first = String(ses.user.name || '').split(/[\s(·]/)[0]; const hr = new Date().getHours();
+  const p = page(`${hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches'}${first ? `, ${first}` : ''}`, { sub: internal ? 'Esto es lo que espera una acción suya y cómo va la semana.' : 'Documentos que requieren su revisión.',
+    actions: [can('close.view') ? linkBtn('Ir al cierre semanal', '#/cierre', '') : null, can('progress.capture') ? linkBtn('Capturar avance', '#/avances/capturar', 'primary') : null] });
+  p.el.classList.add('home'); const week = h('div', { class: 'home-week' }); const stats = h('div', { class: 'stats' }); const inbox = h('div', {}); const side = h('div', { class: 'home-side' }); const lower = h('div', { class: 'chart-grid' }); const foot = h('p', { class: 'small muted' });
+  p.body.append(week, stats, h('div', { class: 'home-grid' }, inbox, side), lower, foot);
+  let expanded = false; const LIMIT = 6;
   const drawInbox = () => get('/api/home/tasks').then((t) => {
-    if (!t.items.length) { clear(inbox).append(h('div', { class: 'inbox' }, h('div', { class: 'inbox-head' }, h('h2', {}, 'Mi trabajo')), empty('Está al día', 'No hay pendientes que esperen una acción suya.'))); return; }
-    const rows = []; let group = null;
-    for (const it of t.items) { if (it.group !== group) { group = it.group; rows.push(h('div', { class: 'inbox-group' }, `${group} · ${t.items.filter((x) => x.group === group).length}`)); }
+    const total = t.total ?? t.items.length; const head = h('div', { class: 'inbox-head' }, h('h2', {}, 'Mi trabajo'), h('span', { class: 'muted small' }, total ? `${total} pendiente${total === 1 ? '' : 's'}` : 'Al día'));
+    if (!t.items.length) { clear(inbox).append(h('div', { class: 'inbox' }, head, empty('Está al día', 'No hay pendientes que esperen una acción suya.'))); return; }
+    const shown = expanded ? t.items : t.items.slice(0, LIMIT); const rows = []; let group = null;
+    for (const it of shown) { if (it.group !== group) { group = it.group; rows.push(h('div', { class: 'inbox-group' }, `${group} · ${t.items.filter((x) => x.group === group).length}`)); }
       const run = async () => { if (!(await dialog({ title: `${it.action.label}: ${it.title}`, text: `${it.action.confirm}${it.amount ? ` Importe: ${money(it.amount)}.` : ''}`, actions: [{ label: 'Cancelar', value: false }, { label: it.action.label, value: true, primary: true }] }))) return; try { await post(it.action.url, it.action.body); toast(`${it.title}: hecho.`, 'ok'); drawInbox(); } catch (e) { showError(e); if (e.status === 409 || e.status === 422) peek(it.href, drawInbox); } };
       rows.push(h('div', { class: `task ${it.urgent ? 'urgent' : ''}` }, h('span', { class: 'mark', title: it.urgent ? 'Urgente' : '' }), h('div', { class: 'tx' }, h('a', { href: it.href, onclick: (e) => { if (window.matchMedia('(min-width: 901px)').matches && !e.metaKey && !e.ctrlKey && !it.href.includes('/revision') && !it.href.endsWith('incidencias')) { e.preventDefault(); peek(it.href, drawInbox); } } }, it.title), h('span', {}, it.sub || '')), it.amount ? h('span', { class: 'amt' }, money(it.amount)) : null,
         it.action ? btn(it.action.label, run, 'small primary') : h('a', { class: 'btn small', href: it.href }, it.actionLabel || 'Abrir'))); }
-    clear(inbox).append(h('div', { class: 'inbox' }, h('div', { class: 'inbox-head' }, h('h2', {}, 'Mi trabajo'), h('span', { class: 'muted small' }, `${t.total ?? t.items.length} pendiente${(t.total ?? t.items.length) === 1 ? '' : 's'}${t.total > t.items.length ? ` · se muestran ${t.items.length}` : ''}`)), rows));
+    const more = t.items.length > LIMIT ? h('button', { class: 'inbox-more', type: 'button', onclick: () => { expanded = !expanded; drawInbox(); } }, expanded ? 'Mostrar menos' : `Ver los ${t.items.length - LIMIT} pendientes restantes`) : null;
+    clear(inbox).append(h('div', { class: 'inbox' }, head, rows, more));
   }).catch(() => clear(inbox));
   drawInbox();
-  const rest = h('div', { class: 'pbody' }); p.body.append(rest); p.body = rest;
-  await load(p.body, () => get('/api/home'), (d) => {
-    if (d.period) p.body.append(h('p', { class: 'muted' }, `Semana operativa ${d.period.code}: ${date(d.period.startDate)} a ${date(d.period.endDate)} · ${d.period.status === 'cerrada' ? 'cerrada' : 'abierta'}`));
-    if (!d.cards.length) p.body.append(empty('Sin tareas asignadas', 'Su perfil no tiene pendientes en este momento.'));
-    p.body.append(h('div', { class: 'cards' }, d.cards.map(kpi)));
-    if (d.role === 'direccion') p.body.append(h('p', { class: 'small muted' }, 'Los importes "expuestos" o "pendientes" son montos por resolver; no son pérdidas comprobadas.'));
-    if (state.session.audience === 'interno') { const zone = h('div', { class: 'chart-grid' }); p.body.append(zone); get('/api/home/charts').then((c) => {
-      if (c.weeks?.length) zone.append(card('Mano de obra por semana', h('p', { class: 'card-desc' }, 'Autorizado, en revisión y pagado (confirmado) de las últimas semanas.'), bars(h('div', {}), { label: 'Mano de obra por semana', categories: c.weeks.map((w) => w.code.replace(/^\d{4}-/, '')), series: [{ name: 'Autorizado', data: c.weeks.map((w) => w.authorized) }, { name: 'En revisión', data: c.weeks.map((w) => w.inReview), color: '--chart-3' }, { name: 'Pagado', data: c.weeks.map((w) => w.paid), color: '--chart-2' }] })));
-      if (c.estimatesByStatus?.length) zone.append(card('Estimaciones de contratistas por estado', h('p', { class: 'card-desc' }, 'Número de documentos en cada etapa.'), donut(h('div', {}), { label: 'Estimaciones por estado', money: false, data: c.estimatesByStatus })));
-      if (c.works?.length) zone.append(card('Aprobado por el cliente y costos por obra', h('p', { class: 'card-desc' }, 'Trabajo aprobado frente a costos registrados. Resultado parcial.'), bars(h('div', {}), { label: 'Aprobado y costos por obra', categories: c.works.map((w) => w.name.replace(' (DEMO)', '')), series: [{ name: 'Aprobado por el cliente', data: c.works.map((w) => w.approved) }, { name: 'Mano de obra', data: c.works.map((w) => w.labour), color: '--chart-3' }, { name: 'Otros costos', data: c.works.map((w) => w.other), color: '--chart-4' }] })));
-      if (c.aging?.some((a) => Number(a.value))) zone.append(card('Saldo por cobrar por antigüedad', h('p', { class: 'card-desc' }, 'Según fecha de vencimiento.'), bars(h('div', {}), { label: 'Antigüedad de saldos', horizontal: true, categories: c.aging.map((a) => a.name), series: [{ name: 'Saldo', data: c.aging.map((a) => a.value) }] })));
-    }).catch(() => {}); }
-    if (can('progress.capture')) p.body.append(h('div', { class: 'actions' }, linkBtn('Capturar avance', '#/avances/capturar', 'primary')));
-  });
+  // Indicador compacto: cifra, una línea de contexto y el resto del detalle al pasar el cursor.
+  const stat = (c) => h(c.link ? 'a' : 'div', { class: 'stat', href: c.link || null, 'data-tip': c.detail?.length ? c.detail.join(' · ') : null }, h('span', { class: 't' }, c.title || c.label), c.value === null || c.value === undefined ? h('span', { class: 'na' }, c.missing || 'No disponible') : h('span', { class: 'v' }, c.kind === 'money' ? money(c.value) : c.value, c.unit ? h('small', {}, ` ${c.unit}`) : null), h('span', { class: 'd' }, c.detail?.[0] || c.period || ' '));
+  const mini = (title, desc, chart) => { const el = card(title, h('p', { class: 'card-desc' }, desc), chart); el.classList.add('compact'); return el; };
+  try {
+    const d = await get('/api/home');
+    if (d.period) week.append(h('span', { class: `dot ${d.period.status === 'cerrada' ? 'done' : ''}` }), h('b', {}, `Semana ${d.period.code.slice(6)}`), h('span', {}, `${date(d.period.startDate)} al ${date(d.period.endDate)}`), h('span', { class: 'chip-lite' }, d.period.status === 'cerrada' ? 'Cerrada' : 'Abierta'));
+    if (d.cards.length) stats.append(...d.cards.map(stat)); else stats.remove();
+    if (d.role === 'direccion') foot.textContent = 'Los importes "expuestos" o "pendientes" son montos por resolver; no son pérdidas comprobadas.';
+  } catch (e) { stats.replaceWith(errorNote(e)); }
+  if (internal) get('/api/home/charts').then((c) => {
+    if (c.weeks?.length) side.append(mini('Mano de obra por semana', 'Autorizado, en revisión y pagado.', bars(h('div', {}), { label: 'Mano de obra por semana', categories: c.weeks.map((w) => w.code.replace(/^\d{4}-/, '')), series: [{ name: 'Autorizado', data: c.weeks.map((w) => w.authorized) }, { name: 'En revisión', data: c.weeks.map((w) => w.inReview), color: '--chart-3' }, { name: 'Pagado', data: c.weeks.map((w) => w.paid), color: '--chart-2' }] })));
+    if (c.estimatesByStatus?.length) side.append(mini('Estimaciones por estado', 'Documentos de contratistas en cada etapa.', donut(h('div', {}), { label: 'Estimaciones por estado', money: false, data: c.estimatesByStatus })));
+    if (c.works?.length) lower.append(mini('Aprobado por el cliente y costos por obra', 'Trabajo aprobado frente a costos registrados. Resultado parcial.', bars(h('div', {}), { label: 'Aprobado y costos por obra', categories: c.works.map((w) => w.name.replace(' (DEMO)', '')), series: [{ name: 'Aprobado por el cliente', data: c.works.map((w) => w.approved) }, { name: 'Mano de obra', data: c.works.map((w) => w.labour), color: '--chart-3' }, { name: 'Otros costos', data: c.works.map((w) => w.other), color: '--chart-4' }] })));
+    if (c.aging?.some((a) => Number(a.value))) lower.append(mini('Saldo por cobrar por antigüedad', 'Según fecha de vencimiento.', bars(h('div', {}), { label: 'Antigüedad de saldos', horizontal: true, categories: c.aging.map((a) => a.name), series: [{ name: 'Saldo', data: c.aging.map((a) => a.value) }] })));
+    if (!side.children.length) side.parentElement.classList.add('single');
+  }).catch(() => side.parentElement.classList.add('single'));
+  else side.parentElement.classList.add('single');
   return p.el;
 }
 
