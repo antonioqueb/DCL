@@ -1,0 +1,1843 @@
+{
+ "fecha": "2026-10-13T01:51:05.971Z",
+ "node": "v24.7.0",
+ "casos": [
+  {
+   "id": "CAS-01",
+   "titulo": "Separación de obras",
+   "reglas": [
+    "ACC-02",
+    "ACC-11",
+    "AVA-10"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "S1 lee la obra B por ID",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "S1 lee un avance de B por ID",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "S1 crea avance en B por API",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "S1 crea avance en A con ubicación de B",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "No se creó ningún registro en B",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "El listado de S1 no trae avances de B",
+     "esperado": 0,
+     "real": 0,
+     "pasa": true
+    },
+    {
+     "desc": "El listado de obras de S1 solo trae A",
+     "esperado": [
+      "AUD-A"
+     ],
+     "real": [
+      "AUD-A"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La búsqueda de S1 no devuelve la obra B",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "La exportación de S1 no trae B",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "S1 descarga un adjunto de B",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "S1 guarda un borrador válido en A",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Queda como borrador",
+     "esperado": "borrador",
+     "real": "borrador",
+     "pasa": true
+    },
+    {
+     "desc": "S2 no ve el borrador de S1 en A",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Exportación PDF de avances como S1 (estado)",
+     "valor": 200
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-02",
+   "titulo": "Separación de terceros",
+   "reglas": [
+    "ACC-03",
+    "ACC-05",
+    "ACC-06",
+    "DOC-03"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "K1 lee la estimación de K2",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "K1 lee la obligación de K2",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "K1 lee el pago de K2",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "K1 pide el recibo PDF de K2",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "K1 pide la estimación PDF de K2",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "K1 observa una partida de K2",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "El listado de K1 no contiene documentos de K2",
+     "esperado": [],
+     "real": [],
+     "pasa": true
+    },
+    {
+     "desc": "El estado de cuenta de K1 no incluye a K2",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "K1 sí ve su propia estimación (compartida al autorizar)",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/reports/costos",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El reporte no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/works/0ee0a899-e5ec-495b-9977-c52f6e9030f9/summary",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"La obra no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/results",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El registro no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/expenses",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El registro no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/rates",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El registro no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/c-estimates",
+     "esperado": true,
+     "real": "200 {\"items\":[],\"total\":0,\"page\":1,\"pageSize\":50,\"totals\":{\"grossTotal\":{\"value\":\"0.00\",\"missing\":0},\"authorizedTotal\":{\"val",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/obligations",
+     "esperado": true,
+     "real": "200 {\"items\":[],\"total\":0,\"page\":1,\"pageSize\":50,\"totals\":{\"gross\":{\"value\":\"0.00\",\"missing\":0},\"discounts\":{\"value\":\"0.00\",",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/documents/preview",
+     "esperado": true,
+     "real": "422 {\"error\":\"validacion\",\"message\":\"Ese documento no existe para esa audiencia.\",\"field\":\"audience\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/documents/preview (pdf)",
+     "esperado": true,
+     "real": "422 {\"error\":\"validacion\",\"message\":\"Ese documento no existe para esa audiencia.\",\"field\":\"audience\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/analytics/datasets",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El registro no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/home/charts",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El registro no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no obtiene datos internos en /api/audit",
+     "esperado": true,
+     "real": "403 {\"error\":\"sin_permiso\",\"message\":\"No tiene permiso para esta acción.\",\"permission\":\"audit.view\"}",
+     "pasa": true
+    },
+    {
+     "desc": "C1 no consulta el explorador de reportes",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "C1 no exporta reportes a PDF",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "S1 (supervisor) no consulta importes de mano de obra en el explorador",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"El conjunto de datos no existe o no está disponible para usted.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "El supervisor no recibe precios en el listado de avances",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    }
+   ],
+   "observaciones": [],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-03",
+   "titulo": "Medición en dos ubicaciones",
+   "reglas": [
+    "AVA-18",
+    "EST-02"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Importes por ubicación",
+     "esperado": [
+      "5526.50",
+      "8834.00"
+     ],
+     "real": [
+      "5526.50",
+      "8834.00"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Total",
+     "esperado": "14360.50",
+     "real": "14360.50",
+     "pasa": true
+    },
+    {
+     "desc": "Otra semana no vuelve a incluir la misma ejecución",
+     "esperado": 0,
+     "real": 0,
+     "pasa": true
+    },
+    {
+     "desc": "Cantidad total 41.03 m²",
+     "esperado": "41.03",
+     "real": "41.03",
+     "pasa": true
+    },
+    {
+     "desc": "Se conservan los dos orígenes",
+     "esperado": [
+      "Planta baja",
+      "Sótano 1"
+     ],
+     "real": [
+      "Planta baja",
+      "Sótano 1"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "No se creó una tercera ejecución",
+     "esperado": 2,
+     "real": 2,
+     "pasa": true
+    },
+    {
+     "desc": "Cada partida conserva unidad, precio y cálculo",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Reagrupar un documento ya generado",
+     "valor": "200 {\"added\":0,\"lateEntries\":0,\"pendingValuation\":0}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-04",
+   "titulo": "Acumulado correcto",
+   "reglas": [
+    "AVA-02",
+    "AVA-03",
+    "SEM-12"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Rechazo del acumulado de 60",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Incremento",
+     "esperado": "15.0000",
+     "real": "15.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Base usada = última validada",
+     "esperado": "40.0000",
+     "real": "40.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Acumulado medido",
+     "esperado": "55.0000",
+     "real": "55.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Cantidad en la estimación = 40 + 15 (no 95 ni 115)",
+     "esperado": "55.00",
+     "real": "55.00",
+     "pasa": true
+    },
+    {
+     "desc": "Existe la asignación de 15 m²",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Importe total 55 × 350",
+     "esperado": "19250.00",
+     "real": "19250.00",
+     "pasa": true
+    },
+    {
+     "desc": "Otra ubicación no hereda la base",
+     "esperado": "9.0000",
+     "real": "9.0000",
+     "pasa": true
+    }
+   ],
+   "observaciones": [],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-05",
+   "titulo": "Acumulado menor",
+   "reglas": [
+    "AVA-04",
+    "AVA-09",
+    "AVA-20"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Acumulado menor rechazado",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "El mensaje orienta a la corrección",
+     "esperado": true,
+     "real": "La medición acumulada (50.00) es menor al acumulado validado comparable (55.00).",
+     "pasa": true
+    },
+    {
+     "desc": "No se creó trabajo negativo",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "La base validada se conserva",
+     "esperado": "55.0000",
+     "real": "55.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Cantidad negativa directa rechazada",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Editar la cantidad de un avance validado",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "El ajuste sin motivo se rechaza",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Antes de autorizar, la cantidad vigente no cambia",
+     "esperado": "55.0000",
+     "real": "55.0000",
+     "pasa": true
+    },
+    {
+     "desc": "La medición original se conserva",
+     "esperado": "55.0000",
+     "real": "55.0000",
+     "pasa": true
+    },
+    {
+     "desc": "La estimación autorizada no cambió por cascada",
+     "esperado": "19250.00",
+     "real": "19250.00",
+     "pasa": true
+    },
+    {
+     "desc": "El ajuste queda vinculado al avance",
+     "esperado": true,
+     "real": [
+      {
+       "id": "b2d02159-c6a8-4311-b342-06969cc2a62d",
+       "organizationId": "2fc2d0ac-6f65-42bd-8817-ad693e552091",
+       "recordVersion": 1,
+       "schemaVersion": 1,
+       "createdAt": "2026-10-13T01:50:31.275Z",
+       "createdBy": "95fbcee3-3acb-41de-855a-5b4e9891c6a4",
+       "updatedAt": "2026-10-13T01:50:31.275Z",
+       "updatedBy": "95fbcee3-3acb-41de-855a-5b4e9891c6a4",
+       "archivedAt": null,
+       "archivedBy": null,
+       "sourceReference": null,
+       "entryId": "24e3f53c-0de0-403d-9226-fe1947ec9e9a",
+       "qtyDelta": "-5.0000",
+       "reasonId": null,
+       "reason": "Se midió de más el remate (auditoría)",
+       "status": "propuesto",
+       "proposedBy": "95fbcee3-3acb-41de-855a-5b4e9891c6a4",
+       "authorizedBy": null,
+       "authorizedAt": null,
+       "observationId": null,
+       "proposedByName": "S1 Supervisor (auditoría)",
+       "authorizedByName": null
+      }
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La obligación no se redujo en silencio",
+     "esperado": "19250.00",
+     "real": "19250.00",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Mensaje al usuario",
+     "valor": "La medición acumulada (50.00) es menor al acumulado validado comparable (55.00). | "
+    },
+    {
+     "desc": "Autorizar ajuste −5 con el avance ya en una estimación autorizada",
+     "valor": "409 {\"error\":\"bloqueado\",\"message\":\"El ajuste dejaría la ejecución (50.00) por debajo de lo ya incluido en documentos de pago al contratista (55.00).\",\"reasons\":[],\"fix\":\"Reabra o corrija primero el documento que incluye esa cantidad.\"}"
+    },
+    {
+     "desc": "Cantidad vigente tras decidir",
+     "valor": "55.0000"
+    },
+    {
+     "desc": "Documentos afectados informados al decidir",
+     "valor": "{\"error\":\"bloqueado\",\"message\":\"El ajuste dejaría la ejecución (50.00) por debajo de lo ya incluido en documentos de pago al contratista (55.00).\",\"reasons\":[],\"fix\":\"Reabra o corrija primero el documento que incluye esa cantidad.\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-06",
+   "titulo": "Generador",
+   "reglas": [
+    "AVA-05",
+    "AVA-06",
+    "SEM-07"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Cantidad del generador",
+     "esperado": "22.5000",
+     "real": "22.5000",
+     "pasa": true
+    },
+    {
+     "desc": "Conserva dimensiones",
+     "esperado": [
+      "4.0000",
+      "3.0000",
+      "2.0000",
+      "1.5000"
+     ],
+     "real": [
+      "4.0000",
+      "3.0000",
+      "2.0000",
+      "1.5000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Conserva fórmula",
+     "esperado": true,
+     "real": "largo × ancho × piezas − deducciones",
+     "pasa": true
+    },
+    {
+     "desc": "Editar una dimensión (aún reportado)",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "El total cambia a 28.5",
+     "esperado": "28.5000",
+     "real": "28.5000",
+     "pasa": true
+    },
+    {
+     "desc": "Importe 22.5 × 350",
+     "esperado": "7875.00",
+     "real": "7875.00",
+     "pasa": true
+    },
+    {
+     "desc": "Deducción mayor al área bruta",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Dimensión no numérica",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Mensaje",
+     "valor": "Las deducciones superan la medición del renglón."
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-07",
+   "titulo": "Exceso de alcance",
+   "reglas": [
+    "PRE-07",
+    "PRE-08",
+    "ADI-02"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "La captura que excede el presupuesto se puede registrar",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Se advierte el exceso al capturar",
+     "esperado": true,
+     "real": [
+      {
+       "type": "sobre_presupuesto",
+       "message": "El acumulado resultante (105.00) supera la cantidad presupuestada (100.00). El trabajo se conserva; su validación requiere aprobación y no modifica el contrato."
+      }
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Validar el exceso sin motivo se bloquea",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no valida su propio exceso",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "Ejecutado 105",
+     "esperado": "105.0000",
+     "real": "105.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Presupuesto vigente sigue en 100",
+     "esperado": "100.0000",
+     "real": "100.0000",
+     "pasa": true
+    },
+    {
+     "desc": "El excedente de 5 es visible (no truncado a cero)",
+     "esperado": true,
+     "real": {
+      "pendingQty": "-5.0000",
+      "state": "excedida"
+     },
+     "pasa": true
+    },
+    {
+     "desc": "Importe vigente del contrato sin cambio",
+     "esperado": "128000.00",
+     "real": "128000.00",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Avisos al capturar",
+     "valor": "[{\"type\":\"sobre_presupuesto\",\"message\":\"El acumulado resultante (105.00) supera la cantidad presupuestada (100.00). El trabajo se conserva; su validación requiere aprobación y no modifica el contrato.\"}]"
+    },
+    {
+     "desc": "Renglón de seguimiento",
+     "valor": "{\"id\":\"61883b43-c6de-4653-9304-35acb654bffb\",\"chapter\":\"PISOS\",\"location\":\"Planta baja\",\"description\":\"Piso planta baja\",\"unit\":\"m2\",\"budgetQty\":\"100.0000\",\"price\":\"1280.0000\",\"budgetAmount\":\"128000.00\",\"changeQty\":\"0.0000\",\"currentQty\":\"100.0000\",\"currentAmount\":\"128000.00\",\"executedQty\":\"105.0000\",\"executedAmount\":\"134400.00\",\"comparable\":true,\"pendingQty\":\"-5.0000\",\"pendingAmount\":\"0.00\",\"clientApprovedQty\":\"0.0000\",\"state\":\"excedida\",\"origin\":\"presupuesto\"}"
+    },
+    {
+     "desc": "Cantidad propuesta al cliente con exceso",
+     "valor": "[[\"105.0000\",\"100.0000\",null]]"
+    },
+    {
+     "desc": "Avisos de la estimación al cliente",
+     "valor": "null"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-08",
+   "titulo": "Partida sin ejecución",
+   "reglas": [
+    "PRE-06",
+    "PRE-12"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Importe presupuestado",
+     "esperado": "21141.00",
+     "real": "21141.00",
+     "pasa": true
+    },
+    {
+     "desc": "Ejecutado cero",
+     "esperado": "0.0000",
+     "real": "0.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Pendiente íntegro",
+     "esperado": "21141.00",
+     "real": "21141.00",
+     "pasa": true
+    },
+    {
+     "desc": "Estado",
+     "esperado": "pendiente",
+     "real": "pendiente",
+     "pasa": true
+    },
+    {
+     "desc": "No se rotula como pérdida",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "La partida sin ejecución aparece en la exportación",
+     "esperado": true,
+     "real": "﻿Capítulo,Ubicación,Partida,Unidad,Presupuestado,Modificaciones,Vigente,Ejecutado validado,Pendiente,Importe vigente,Ejecución valorizada,Importe pendiente,Seguimiento\r\nBAÑOS,Planta baja,Limpieza y se",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Exportación CSV del seguimiento (estado y tipo)",
+     "valor": "200 archivo"
+    },
+    {
+     "desc": "Reporte fijo de presupuesto contra ejecución",
+     "valor": "200 2 renglones"
+    },
+    {
+     "desc": "Tarjetas de la obra",
+     "valor": "[[\"avances\",\"1\"],[\"pendientes\",\"0\"],[\"sinEjecucion\",\"1\"],[\"presupuesto\",\"33941.00\"],[\"ejecutado\",\"5120.00\"],[\"propuesto\",\"0.00\"],[\"aprobado\",\"0.00\"],[\"facturado\",\"0.00\"],[\"cobrado\",\"0.00\"],[\"porCobrar\",\"0.00\"],[\"anticipo\",\"0.00\"],[\"manoObra\",\"0.00\"],[\"pagado\",\"0.00\"],[\"porPagar\",\"0.00\"],[\"costos\",\"0.00\"],[\"comprometido\",\"0.00\"]]"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-09",
+   "titulo": "Tarifas distintas",
+   "reglas": [
+    "TAR-02",
+    "TAR-12",
+    "SEM-03"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Costo de contratación",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "Propuesta comercial",
+     "esperado": "12800.00",
+     "real": "12800.00",
+     "pasa": true
+    },
+    {
+     "desc": "Mismo avance de origen en los dos circuitos",
+     "esperado": "a1c63017-47b8-47a2-9bc6-44a55f36833b",
+     "real": "a1c63017-47b8-47a2-9bc6-44a55f36833b",
+     "pasa": true
+    },
+    {
+     "desc": "Sigue existiendo una sola ejecución",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Cambiar el precio comercial no altera el de contratación",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "La tarifa de contratación sigue en 350",
+     "esperado": [
+      "350.0000"
+     ],
+     "real": [
+      "350.0000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El margen se marca como parcial",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "No se usa la etiqueta \"utilidad neta\"",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Margen de la obra",
+     "valor": "{\"revenue\":\"0.00\",\"costs\":\"3500.00\",\"amount\":\"-3500.00\",\"pct\":null,\"partial\":true,\"policy\":\"no_definida\",\"formula\":\"Trabajo aprobado por el cliente (antes de impuestos) − costos registrados de la obra (mano de obra autorizada + gastos autorizados asignados).\",\"caveat\":\"La política de reconocimiento de ingresos no está validada: es un resultado parcial, no una utilidad contable.\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-10",
+   "titulo": "Vigencia de precios",
+   "reglas": [
+    "TAR-03",
+    "TAR-04",
+    "EST-10"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Documento anterior permanece",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "Nueva partida usa 400",
+     "esperado": "4000.00",
+     "real": "4000.00",
+     "pasa": true
+    },
+    {
+     "desc": "Reemitir el histórico conserva 3,500",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "La vista previa no es borrador",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "La versión congelada guarda el origen del precio",
+     "esperado": "350.0000",
+     "real": "350.0000",
+     "pasa": true
+    },
+    {
+     "desc": "La tarifa no se edita en sitio",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Avance con fecha anterior a la vigencia, estimado después (precio aplicado)",
+     "valor": "4000.00"
+    },
+    {
+     "desc": "Segunda tarifa con la misma vigencia y alcance (precedencia determinista)",
+     "valor": "200 {\"id\":\"589dee13-72f9-42fe-94fe-651dd44e5488\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-11",
+   "titulo": "Precio ausente",
+   "reglas": [
+    "TAR-09",
+    "AVA-13"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Importe indeterminado (no cero)",
+     "esperado": null,
+     "real": null,
+     "pasa": true
+    },
+    {
+     "desc": "Marcada por valorar",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Total bruto no la suma como cero silencioso",
+     "esperado": "0.00",
+     "real": "0.00",
+     "pasa": true
+    },
+    {
+     "desc": "Autorización bloqueada",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Precio cero sin motivo se rechaza",
+     "esperado": true,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no fija precio",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Enviar sin cantidad se rechaza",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Explicación",
+     "valor": "No hay partidas que puedan autorizarse. \"\""
+    },
+    {
+     "desc": "Autorización parcial con solo partidas sin precio",
+     "valor": "409 {\"error\":\"bloqueado\",\"message\":\"No hay partidas que puedan autorizarse.\",\"reasons\":[\"Detalle sin tarifa (auditoría): sin tarifa definida\"]}"
+    },
+    {
+     "desc": "Precio cero explícito con motivo",
+     "valor": "422 {\"error\":\"validacion\",\"message\":\"El precio debe ser mayor que cero.\",\"field\":\"unitPrice\"}"
+    },
+    {
+     "desc": "Partida tras el precio cero explícito",
+     "valor": "{\"amount\":null,\"pendingValuation\":true}"
+    },
+    {
+     "desc": "Borrador incompleto (sin concepto ni cantidad)",
+     "valor": "422 Falta el dato obligatorio: concepto."
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-12",
+   "titulo": "Cambio después de aceptación",
+   "reglas": [
+    "EST-07",
+    "EST-08"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "K1 acepta la versión 1",
+     "esperado": "lista_autorizar",
+     "real": "lista_autorizar",
+     "pasa": true
+    },
+    {
+     "desc": "Importe aceptado",
+     "esperado": "7000.00",
+     "real": "7000.00",
+     "pasa": true
+    },
+    {
+     "desc": "La conformidad identifica versión, persona y fecha",
+     "esperado": [
+      1,
+      "K1 usuario (auditoría)",
+      true
+     ],
+     "real": [
+      1,
+      "K1 usuario (auditoría)",
+      true
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "No se autorizan $7,700 bajo la aceptación de $7,000",
+     "esperado": true,
+     "real": {
+      "status": 200,
+      "authorizedTotal": "7000.00"
+     },
+     "pasa": true
+    },
+    {
+     "desc": "Si se autorizó, fue por el importe aceptado",
+     "esperado": true,
+     "real": "7000.00",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Dirección propone +2 m²",
+     "valor": "200 {\"id\":\"d02c5e63-d8eb-40db-8157-01e5ae874b08\"}"
+    },
+    {
+     "desc": "Decidir el ajuste",
+     "valor": "200 {\"id\":\"d02c5e63-d8eb-40db-8157-01e5ae874b08\"}"
+    },
+    {
+     "desc": "Estado tras el cambio",
+     "valor": "{\"status\":\"lista_autorizar\",\"version\":1,\"gross\":\"7000.00\",\"conformity\":{\"version\":1,\"valid\":true}}"
+    },
+    {
+     "desc": "Autorizar tras el cambio sin nueva aceptación",
+     "valor": "200 {\"id\":\"7cb0c4b7-f2c2-4dd5-9341-38b8fbe52a4b\",\"status\":\"autorizada\",\"authorizedTotal\":\"7000.00\",\"obligationId\":\"9ebb85a1-c1f7-4d2a-b7bf-63f675e7cf34\",\"excluded\":0,\"version\":1}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-13",
+   "titulo": "Aprobación parcial",
+   "reglas": [
+    "EST-05",
+    "EST-06",
+    "CIE-06"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Con la política de parciales desactivada, la autorización se bloquea",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Autorizado",
+     "esperado": "5000.00",
+     "real": "5000.00",
+     "pasa": true
+    },
+    {
+     "desc": "Excluidas",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Estados por partida",
+     "esperado": [
+      "autorizada",
+      "diferida"
+     ],
+     "real": [
+      "autorizada",
+      "diferida"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Bruto por cerrar",
+     "esperado": "5000.00",
+     "real": "5000.00",
+     "pasa": true
+    },
+    {
+     "desc": "El tablero muestra la partida excluida y su motivo",
+     "esperado": true,
+     "real": "sin mención de partidas excluidas en el tablero",
+     "pasa": false
+    },
+    {
+     "desc": "El cierre liquida solo lo autorizado",
+     "esperado": "5000.00",
+     "real": "5000.00",
+     "pasa": true
+    },
+    {
+     "desc": "La ejecución diferida no quedó pagada",
+     "esperado": "0.0000",
+     "real": "0.0000",
+     "pasa": true
+    },
+    {
+     "desc": "La autorizada sí quedó asignada",
+     "esperado": "62.5000",
+     "real": "62.5000",
+     "pasa": true
+    },
+    {
+     "desc": "Los $2,000 diferidos quedan disponibles para la semana siguiente",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Importe recuperado",
+     "esperado": "2000.00",
+     "real": "2000.00",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Parámetro policy.partialAuthorization de fábrica",
+     "valor": "{\"value\":true,\"requiresDecision\":true}"
+    },
+    {
+     "desc": "Explicación del bloqueo",
+     "valor": "{\"error\":\"bloqueado\",\"message\":\"La estimación no puede autorizarse todavía.\",\"reasons\":[\"\\\"Canto pulido (auditoría)\\\" tiene una observación sin resolver.\"],\"fix\":\"Resuelva los pendientes o registre una excepción con motivo.\"}"
+    },
+    {
+     "desc": "Tablero de cierre: pendientes informados",
+     "valor": "{\"code\":\"pendientes\",\"title\":\"Pendientes informados\",\"ok\":true,\"blocking\":false,\"problems\":[]}"
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "CAS-14",
+   "titulo": "Observación del contratista",
+   "reglas": [
+    "EST-03",
+    "EST-04"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "La captura original no cambia",
+     "esperado": "10.0000",
+     "real": "10.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Se conservan reportado y propuesto",
+     "esperado": [
+      "10.0000",
+      "12.0000"
+     ],
+     "real": [
+      "10.0000",
+      "12.0000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "K1 edita la captura por API",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "K1 cambia el precio por API",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "K1 resuelve su propia observación",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "S1 resuelve la observación",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Resolver sin motivo",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Quedan visibles reportado, propuesto y acordado",
+     "esperado": [
+      "10.0000",
+      "12.0000",
+      "11.0000"
+     ],
+     "real": [
+      "10.0000",
+      "12.0000",
+      "11.0000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Con persona y motivo",
+     "esperado": true,
+     "real": {
+      "id": "0220cf40-d28c-4c71-9dfe-2e1f685ef426",
+      "text": "Medí 12 m² (auditoría)",
+      "proposedQty": "12.0000",
+      "proposedAmount": null,
+      "status": "resuelta",
+      "resolution": "parcial",
+      "resolutionNote": "Se verificó 11 m² en sitio (auditoría)",
+      "before": {
+       "qty": "10.0000",
+       "unitPrice": "350.0000",
+       "amount": "3500.00",
+       "rev": 1,
+       "version": 1
+      },
+      "after": {
+       "qty": "11.0000",
+       "unitPrice": "350.0000",
+       "amount": "3850.00",
+       "rev": 2,
+       "version": 2
+      },
+      "author": "K1 usuario (auditoría)",
+      "createdAt": "2026-10-13T01:50:52.059Z",
+      "resolvedAt": "2026-10-13T01:50:52.106Z",
+      "resolvedBy": "D1 Dirección (auditoría)",
+      "estimateVersion": 1,
+      "allocationId": null,
+      "evidenceAttachmentId": null
+     },
+     "pasa": true
+    },
+    {
+     "desc": "La medición del supervisor sigue en 10 y la vigente es 11",
+     "esperado": [
+      "10.0000",
+      "11.0000"
+     ],
+     "real": [
+      "10.0000",
+      "11.0000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La resolución creó versión nueva",
+     "esperado": 2,
+     "real": 2,
+     "pasa": true
+    },
+    {
+     "desc": "La aceptación de la versión 1 ya no sirve",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Resolución parcial a 11",
+     "valor": "{\"id\":\"0220cf40-d28c-4c71-9dfe-2e1f685ef426\",\"before\":{\"qty\":\"10.0000\",\"unitPrice\":\"350.0000\",\"amount\":\"3500.00\",\"rev\":1,\"version\":1},\"after\":{\"qty\":\"11.0000\",\"unitPrice\":\"350.0000\",\"amount\":\"3850.00\",\"rev\":2,\"version\":2}}"
+    },
+    {
+     "desc": "Reportado / propuesto / acordado",
+     "valor": "{\"reportado\":\"10.0000\",\"propuesto\":\"12.0000\",\"acordado\":\"11.0000\",\"por\":\"D1 Dirección (auditoría)\",\"nota\":\"Se verificó 11 m² en sitio (auditoría)\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-15",
+   "titulo": "Adicional absorbido",
+   "reglas": [
+    "ADI-03",
+    "ADI-05",
+    "ADI-06"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Tres decisiones separadas",
+     "esperado": [
+      "validado",
+      "autorizado",
+      "pendiente"
+     ],
+     "real": [
+      "validado",
+      "autorizado",
+      "pendiente"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Exposición",
+     "esperado": "1000.00",
+     "real": "1000.00",
+     "pasa": true
+    },
+    {
+     "desc": "Obligación con el contratista",
+     "esperado": "1000.00",
+     "real": "1000.00",
+     "pasa": true
+    },
+    {
+     "desc": "La cuenta por cobrar no aumenta",
+     "esperado": "0.00",
+     "real": "0.00",
+     "pasa": true
+    },
+    {
+     "desc": "No se puede cobrar al cliente sin aprobación comercial",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "La obligación con el contratista permanece",
+     "esperado": "1000.00",
+     "real": "1000.00",
+     "pasa": true
+    },
+    {
+     "desc": "Absorber sin motivo",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Absorber con motivo",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "El costo permanece con motivo y responsable",
+     "esperado": [
+      "absorbido",
+      "1000.00",
+      true,
+      true
+     ],
+     "real": [
+      "absorbido",
+      "1000.00",
+      true,
+      true
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La cantidad no se puso en cero",
+     "esperado": "1.0000",
+     "real": "1.0000",
+     "pasa": true
+    },
+    {
+     "desc": "Sigue sin cuenta por cobrar",
+     "esperado": "0.00",
+     "real": "0.00",
+     "pasa": true
+    },
+    {
+     "desc": "S1 no ve importes del adicional",
+     "esperado": [
+      null,
+      null
+     ],
+     "real": [
+      null,
+      null
+     ],
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Exposición tras absorber",
+     "valor": null
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-16",
+   "titulo": "Aditiva propuesta",
+   "reglas": [
+    "PRE-04",
+    "ADI-08"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Aprobar la deductiva",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Vigente aprobado",
+     "esperado": "95000.00",
+     "real": "95000.00",
+     "pasa": true
+    },
+    {
+     "desc": "Original",
+     "esperado": "100000.00",
+     "real": "100000.00",
+     "pasa": true
+    },
+    {
+     "desc": "La aditiva pendiente se muestra separada",
+     "esperado": true,
+     "real": {
+      "original": "100000.00",
+      "additivesApproved": "0.00",
+      "deductivesApproved": "5000.00",
+      "current": "95000.00",
+      "executedValued": "0.00",
+      "pending": "100000.00",
+      "notComparable": 0,
+      "proposedNotApproved": "10000.00",
+      "withoutExecution": 1
+     },
+     "pasa": true
+    },
+    {
+     "desc": "Aprobar la aditiva",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Vigente tras aceptar",
+     "esperado": "105000.00",
+     "real": "105000.00",
+     "pasa": true
+    },
+    {
+     "desc": "S1 no aprueba modificaciones",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no propone modificaciones",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Una modificación aprobada no se vuelve a decidir",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Resumen",
+     "valor": "{\"original\":\"100000.00\",\"additivesApproved\":\"0.00\",\"deductivesApproved\":\"5000.00\",\"current\":\"95000.00\",\"executedValued\":\"0.00\",\"pending\":\"100000.00\",\"notComparable\":0,\"proposedNotApproved\":\"10000.00\",\"withoutExecution\":1}"
+    },
+    {
+     "desc": "Aprobar sin indicar quién aprobó por el cliente",
+     "valor": "422 Indique quién aprobó por parte del cliente; una propuesta no aceptada no modifica el contrato."
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-17",
+   "titulo": "Jornada repartida",
+   "reglas": [
+    "JOR-03",
+    "GAS-03"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Jornada 60/40",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Importe total",
+     "esperado": "600.00",
+     "real": "600.00",
+     "pasa": true
+    },
+    {
+     "desc": "Distribución",
+     "esperado": [
+      "240.00",
+      "360.00"
+     ],
+     "real": [
+      "240.00",
+      "360.00"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Una sola jornada",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Distribuir 120 %",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Segunda jornada completa el mismo día sin justificar",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no captura jornada en B",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "La obra A recibe $360 de la jornada",
+     "esperado": "360.00",
+     "real": "360.00",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Respuesta",
+     "valor": "{\"id\":\"636376fe-d3a9-44bc-a75f-1ce7bf2a6b8d\",\"warnings\":[]}"
+    },
+    {
+     "desc": "Renglón",
+     "valor": "{\"id\":\"636376fe-d3a9-44bc-a75f-1ce7bf2a6b8d\",\"recordVersion\":1,\"date\":\"2026-08-26\",\"timeUnit\":\"jornada\",\"qty\":\"1.0000\",\"rate\":\"600.0000\",\"amount\":\"600.00\",\"status\":\"capturada\",\"note\":null,\"overlapJustification\":null,\"workerId\":\"a859e27e-7b9f-4605-982a-e8d7c40cc80c\",\"crewId\":null,\"contractorId\":\"5966c5d6-c2b9-4491-9f88-a0572345a9e9\",\"who\":\"Trabajador (auditoría)\",\"contractor\":\"K1 Contratista (auditoría)\",\"period\":\"2026-S35\",\"works\":\"Obra A (auditoría) (0.60) · Obra B (auditoría) (0.40)\",\"allocati"
+    },
+    {
+     "desc": "Aprobar la jornada",
+     "valor": "200 {\"id\":\"636376fe-d3a9-44bc-a75f-1ce7bf2a6b8d\"}"
+    },
+    {
+     "desc": "Estimación de A con la jornada",
+     "valor": "{\"added\":1,\"items\":[[\"Jornadas · Trabajador (auditoría) · 2026-08-26\",\"jornada\",\"360.00\"]]}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-18",
+   "titulo": "Evidencia pendiente",
+   "reglas": [
+    "EVI-03",
+    "EVI-04"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Validar el adicional sin foto",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "El adicional se conserva reportado",
+     "esperado": "reportado",
+     "real": "reportado",
+     "pasa": true
+    },
+    {
+     "desc": "Vincular un adjunto que no existe (carga fallida) se rechaza",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "Sigue sin evidencia",
+     "esperado": 0,
+     "real": 0,
+     "pasa": true
+    },
+    {
+     "desc": "Reintento de la carga con la misma clave de operación devuelve el mismo adjunto",
+     "esperado": "3daece29-9b03-4382-8a82-d983020ec8d4",
+     "real": "3daece29-9b03-4382-8a82-d983020ec8d4",
+     "pasa": true
+    },
+    {
+     "desc": "La misma fotografía (mismo contenido) no cuenta dos veces como evidencia",
+     "esperado": 1,
+     "real": 2,
+     "pasa": false
+    },
+    {
+     "desc": "Con evidencia confirmada sí se valida",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Trabajo oculto sin foto no se valida",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Excepción sin motivo",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no concede la excepción",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "La excepción queda visible con motivo y responsable",
+     "esperado": true,
+     "real": "{\"reason\":\"Teléfono extraviado; verificado en sitio (auditoría)\",\"authorizedBy\":\"5e74807b-cc45-4ea8-b3f6-a44bc3e548f3\",\"authorizedByName\":\"D1 Dirección (auditoría)\",\"at\":\"2026-10-13T01:51:01.088Z\"}",
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Carga de un archivo vacío",
+     "valor": "422 {\"error\":\"validacion\",\"message\":\"El archivo está vacío.\",\"field\":\"file\"}"
+    },
+    {
+     "desc": "Segunda carga del mismo archivo sin clave (p. ej. el usuario lo vuelve a elegir)",
+     "valor": "{\"mismoId\":false,\"mismoHash\":true}"
+    },
+    {
+     "desc": "Vínculos de evidencia tras elegir dos veces la misma foto",
+     "valor": "2 (segundo vínculo: 200)"
+    },
+    {
+     "desc": "Excepción de evidencia para un adicional",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "CAS-19",
+   "titulo": "Cambio de plano",
+   "reglas": [
+    "EVI-08",
+    "EVI-09",
+    "DOC-02"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Versiones del plano",
+     "esperado": [
+      [
+       "sustituida",
+       1
+      ],
+      [
+       "vigente",
+       2
+      ]
+     ],
+     "real": [
+      [
+       "sustituida",
+       1
+      ],
+      [
+       "vigente",
+       2
+      ]
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La marca permanece en la versión 1 y no se mueve sola a la 2",
+     "esperado": [
+      1,
+      0
+     ],
+     "real": [
+      1,
+      0
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "La anotación conserva versión, página y coordenadas",
+     "esperado": [
+      "70625678-051d-4471-ac54-512b65125cbc",
+      1,
+      [
+       [
+        0.25,
+        0.4
+       ]
+      ]
+     ],
+     "real": [
+      "70625678-051d-4471-ac54-512b65125cbc",
+      1,
+      [
+       [
+        0.25,
+        0.4
+       ]
+      ]
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El documento publicado no cambió por subir el plano nuevo",
+     "esperado": "[{\"plan\":\"Planta baja (auditoría)\",\"version\":1,\"attachmentId\":\"1287260e-c79c-4905-93c9-f5a74152546f\",\"page\":1,\"shape\":\"punto\",\"points\":[[0.25,0.4]],\"label\":\"Zona ejecutada (auditoría)\"}]",
+     "real": "[{\"plan\":\"Planta baja (auditoría)\",\"version\":1,\"attachmentId\":\"1287260e-c79c-4905-93c9-f5a74152546f\",\"page\":1,\"shape\":\"punto\",\"points\":[[0.25,0.4]],\"label\":\"Zona ejecutada (auditoría)\"}]",
+     "pasa": true
+    },
+    {
+     "desc": "El documento publicado incluye el plano y referencia la versión 1",
+     "esperado": true,
+     "real": [
+      {
+       "plan": "Planta baja (auditoría)",
+       "version": 1,
+       "attachmentId": "1287260e-c79c-4905-93c9-f5a74152546f",
+       "page": 1,
+       "shape": "punto",
+       "points": [
+        [
+         0.25,
+         0.4
+        ]
+       ],
+       "label": "Zona ejecutada (auditoría)"
+      }
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "C1 no anota planos",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Coordenadas fuera de rango",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Anotación creada",
+     "valor": "{\"id\":\"52f453fe-7868-4a31-81f7-ca78ce906cd1\"}"
+    },
+    {
+     "desc": "Vincular la marca a la partida comercial",
+     "valor": "200 {\"id\":\"3c22721d-9b73-4ced-929c-889bdfc337a4\"}"
+    },
+    {
+     "desc": "Planos en el documento publicado",
+     "valor": "[{\"plan\":\"Planta baja (auditoría)\",\"version\":1,\"attachmentId\":\"1287260e-c79c-4905-93c9-f5a74152546f\",\"page\":1,\"shape\":\"punto\",\"points\":[[0.25,0.4]],\"label\":\"Zona ejecutada (auditoría)\"}]"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "CAS-20",
+   "titulo": "Retrabajo",
+   "reglas": [
+    "AVA-08",
+    "ADI-11"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Capturar el retrabajo",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Ejecución entregada sigue en 20 (no 25)",
+     "esperado": "20.0000",
+     "real": "25.0000",
+     "pasa": false
+    },
+    {
+     "desc": "Lo cobrable al cliente son 20 m²",
+     "esperado": "20.00",
+     "real": "25.00",
+     "pasa": false
+    },
+    {
+     "desc": "El costo de la reparación queda identificado como retrabajo",
+     "esperado": true,
+     "real": [
+      "Instalación de piso (auditoría)",
+      "Instalación de piso (auditoría)"
+     ],
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Retrabajo sin clasificar la causa",
+     "valor": "422 Indique si el retrabajo corrige un error de instalación, un cambio solicitado o es trabajo adicional."
+    },
+    {
+     "desc": "Estimación del contratista",
+     "valor": "[[\"Instalación de piso (auditoría)\",\"20.0000\",\"7000.00\",\"ordinario\"],[\"Instalación de piso (auditoría)\",\"5.0000\",\"1750.00\",\"retrabajo\"]]"
+    },
+    {
+     "desc": "Cobrable tras un retrabajo sin partida de presupuesto",
+     "valor": "[[\"20.0000\",\"ordinario\",\"con partida\"],[\"5.0000\",\"retrabajo\",\"con partida\"],[\"3.0000\",\"retrabajo\",\"sin partida\"]]"
+    },
+    {
+     "desc": "Reporte de retrabajos",
+     "valor": "404 "
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  }
+ ]
+}

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { startEnv } from '../tests/helpers.js';
 export { TINY_JPG } from '../server/seed/client.js';
 export const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'resultados');
-const J = (v) => JSON.stringify(v);
+const J = (v) => JSON.stringify(v === undefined ? null : v) ?? 'null';
 export const casos = [];
 export function caso(id, titulo, reglas, fn) { casos.push({ id, titulo, reglas, fn }); }
 export async function ejecutar(nombre, filtro) {

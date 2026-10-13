@@ -1,0 +1,10 @@
+// Lectura en memoria y solo lectura de los cinco libros reales. No copia contenido: imprime únicamente conteos agregados.
+import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
+import { readWorkbook } from '../server/importers/xlsx.js'; import { identify, parse } from '../server/importers/profiles.js';
+const files = ['/Users/alphaqueb/Desktop/archivosadminoperativosdcl/S35_Estimaciones.xlsx', '/Users/alphaqueb/Desktop/archivosadminoperativosdcl/230101_Pagos Semanales.xlsx', '/Users/alphaqueb/Desktop/archivosadminoperativosdcl/260113_GastosDCL.xlsx', '/Users/alphaqueb/Desktop/archivosadminoperativosdcl/260106_FlujosDCL.xlsx', '/Users/alphaqueb/Downloads/flujodclcliente/260731_Balcones.xlsx'];
+let hojas = 0, ocultas = 0; const out = [];
+for (const f of files) { if (!fs.existsSync(f)) { out.push({ archivo: path.basename(f), falta: true }); continue; } const buf = fs.readFileSync(f); const t0 = Date.now(); const wb = await readWorkbook(buf); const sheets = wb.sheets || wb; const hid = sheets.filter((s) => s.hidden || s.state === 'hidden' || s.state === 'veryHidden').length; hojas += sheets.length; ocultas += hid;
+  const profile = identify(sheets); let res = null, err = null; try { res = profile ? parse(profile, sheets, path.basename(f)) : null; } catch (e) { err = e.message; }
+  const recs = res?.records || []; const byKind = {}; for (const r of recs) byKind[r.kind] = (byKind[r.kind] || 0) + 1; const issues = {}; for (const i of res?.issues || []) issues[i.type || i.kind] = (issues[i.type || i.kind] || 0) + 1;
+  out.push({ archivo: path.basename(f), sha256: crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12), hojas: sheets.length, ocultas: hid, perfil: profile, registros: recs.length, porTipo: byKind, excluidos: (res?.excluded || []).length, incidencias: issues, verificacionesDeTotales: res?.totals ? { revisados: res.totals.checked ?? res.totals.length, conDiferencia: res.totals.withDifference ?? null } : null, ms: Date.now() - t0, error: err }); }
+console.log(JSON.stringify({ hojas, ocultas, libros: out }, null, 1));

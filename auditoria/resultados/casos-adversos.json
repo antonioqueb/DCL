@@ -1,0 +1,1072 @@
+{
+ "fecha": "2026-10-13T02:13:55.536Z",
+ "node": "v24.7.0",
+ "casos": [
+  {
+   "id": "ADV-01",
+   "titulo": "El administrador técnico no obtiene facultad económica asignándose un rol",
+   "reglas": [
+    "ACC-08",
+    "ACC-13"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Sin rol de dirección no autoriza el pago",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "Administrar usuarios no permite autoconcederse la facultad de autorizar pagos",
+     "esperado": true,
+     "real": {
+      "asignacion": 200,
+      "autorizacion": 200
+     },
+     "pasa": false
+    },
+    {
+     "desc": "La asignación de rol queda en la auditoría con su autor",
+     "esperado": true,
+     "real": [
+      "inicio sesion",
+      "autorizacion pago",
+      "asignacion rol",
+      "preparacion pago",
+      "preparacion pago",
+      "autorizacion estimacion"
+     ],
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "El administrador se asigna a sí mismo el rol de dirección",
+     "valor": "200 "
+    },
+    {
+     "desc": "Después intenta autorizar el pago",
+     "valor": "200 "
+    },
+    {
+     "desc": "El administrador agrega payments.authorize a su propio rol",
+     "valor": "422 Indique el motivo de el cambio de permisos (al menos 5 caracteres)."
+    },
+    {
+     "desc": "El administrador crea un usuario nuevo con rol de dirección",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "ADV-02",
+   "titulo": "Varios roles: el alcance limitado no se vuelve global",
+   "reglas": [
+    "ACC-10",
+    "ACC-04"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Con dos roles limitados a obras asignadas no lee un avance de B",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "Ni captura en B",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "La auxiliar captura gastos pero no ve resultados ni autoriza",
+     "esperado": [
+      200,
+      404
+     ],
+     "real": [
+      200,
+      404
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Auxiliar: sin márgenes ni mano de obra, sin datos bancarios, sin costos en el explorador",
+     "esperado": [
+      true,
+      403,
+      404
+     ],
+     "real": [
+      true,
+      403,
+      404
+     ],
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Ficha de obra vista por la auxiliar (tarjetas)",
+     "valor": "{\"cards\":[\"avances\",\"pendientes\",\"sinEjecucion\",\"facturado\",\"cobrado\",\"porCobrar\",\"anticipo\"],\"margin\":null}"
+    },
+    {
+     "desc": "Conjuntos del explorador visibles para la auxiliar",
+     "valor": "[\"gastos\",\"cobranza\",\"cobros\",\"insumos\"]"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "ADV-03",
+   "titulo": "Reabrir una estimación con obligación pendiente: ¿se puede pagar el resto mientras está en revisión?",
+   "reglas": [
+    "EST-12",
+    "PAG-16"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "La estimación volvió a revisión",
+     "esperado": "revision_interna",
+     "real": "revision_interna",
+     "pasa": true
+    },
+    {
+     "desc": "No se paga el saldo de una estimación que está reabierta y sin autorización vigente",
+     "esperado": true,
+     "real": {
+      "pagadoAhora": "10000.00",
+      "estadoEstimacion": "revision_interna"
+     },
+     "pasa": false
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Preparar el pago del saldo con la estimación reabierta",
+     "valor": "200 "
+    },
+    {
+     "desc": "Autorizar y confirmar ese pago",
+     "valor": "200 / 200 "
+    },
+    {
+     "desc": "Obligación",
+     "valor": "{\"gross\":\"10000.00\",\"paid\":\"10000.00\",\"balance\":\"0.00\",\"status\":\"autorizada\"}"
+    },
+    {
+     "desc": "Tablero del cierre tras reabrir",
+     "valor": "{\"toClose\":\"0.00\",\"estados\":[\"revision_interna\"]}"
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "ADV-04",
+   "titulo": "Semana cerrada, captura tardía y complemento",
+   "reglas": [
+    "AVA-16",
+    "CIE-07",
+    "CIE-11",
+    "CIE-12",
+    "SEM-06"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Existe una ruta para registrar el trabajo tardío conservando su fecha real",
+     "esperado": true,
+     "real": "La semana 2026-S35 ya está cerrada.",
+     "pasa": true
+    },
+    {
+     "desc": "La fecha real de ejecución se conserva",
+     "esperado": "2026-08-28",
+     "real": "2026-08-28",
+     "pasa": true
+    },
+    {
+     "desc": "La complementaria incorpora solo lo tardío",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Emitir el complemento sin motivo",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Complemento: solo el importe tardío",
+     "esperado": [
+      "1400.00",
+      "complemento"
+     ],
+     "real": [
+      "1400.00",
+      "complemento"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El cierre original no cambió",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "Un cierre emitido no admite edición ni borrado",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Fecha futura rechazada",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Capturar con fecha de una semana ya cerrada",
+     "valor": "409 La semana 2026-S35 ya está cerrada. Capture en la semana abierta conservando la fecha real de ejecución; entrará como complemento o en el siguiente corte."
+    },
+    {
+     "desc": "Semanas",
+     "valor": "[[\"2026-S35\",\"cerrada\"]]"
+    },
+    {
+     "desc": "Captura tardía indicando la semana de liquidación y el motivo",
+     "valor": "200 "
+    },
+    {
+     "desc": "Semana asignada al avance tardío",
+     "valor": "{\"period\":\"2026-S36\",\"late\":null}"
+    },
+    {
+     "desc": "Estimación complementaria de la semana cerrada",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "ADV-05",
+   "titulo": "Semana y año: cruce de diciembre a enero y fecha local de Monterrey",
+   "reglas": [
+    "SEM-13",
+    "SEM-14"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Semana 1 de 2027 es otro periodo",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Códigos con año",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "31/12/2026 y 02/01/2027 caen en la misma semana y conservan un año inequívoco",
+     "esperado": true,
+     "real": [
+      {
+       "year": 2026,
+       "week": 53,
+       "start": "2026-12-28",
+       "end": "2027-01-02",
+       "code": "2026-S53"
+      },
+      {
+       "year": 2026,
+       "week": 53,
+       "start": "2026-12-28",
+       "end": "2027-01-02",
+       "code": "2026-S53"
+      }
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "No hay dos periodos con el mismo año y semana",
+     "esperado": 1,
+     "real": 1,
+     "pasa": true
+    },
+    {
+     "desc": "Instante 28/08/2026 22:30 de Monterrey (04:30 UTC del 29) → fecha local 28",
+     "esperado": "2026-08-28",
+     "real": "2026-08-28",
+     "pasa": true
+    },
+    {
+     "desc": "Instante 01/01/2027 05:59 UTC → 31/12/2026 local",
+     "esperado": "2026-12-31",
+     "real": "2026-12-31",
+     "pasa": true
+    },
+    {
+     "desc": "La fecha de ejecución se guarda y recupera sin desplazarse",
+     "esperado": "2026-08-29",
+     "real": "2026-08-29",
+     "pasa": true
+    },
+    {
+     "desc": "Fecha de captura independiente de la de ejecución",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Fecha inexistente",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Periodos",
+     "valor": "[[\"2027-S01\",\"2027-01-04\",\"2027-01-09\"],[\"2026-S35\",\"2026-08-24\",\"2026-08-29\"],[\"2026-S01\",\"2025-12-29\",\"2026-01-03\"]]"
+    },
+    {
+     "desc": "Semana de 31/12/2026, 02/01/2027 y 04/01/2027",
+     "valor": "[[\"2026-S53\",null,null],[\"2026-S53\",null,null],[\"2027-S01\",null,null]]"
+    },
+    {
+     "desc": "Crear dos veces la semana 2026-S35",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "ADV-06",
+   "titulo": "Exportaciones: fórmulas en texto, números negativos, nombres de archivo y rutas",
+   "reglas": [
+    "PER-11",
+    "EVI-07",
+    "DOC-01"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Texto que empieza por = + - @ se neutraliza en CSV",
+     "esperado": [
+      true,
+      true,
+      true,
+      true
+     ],
+     "real": [
+      true,
+      true,
+      true,
+      true
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Un importe numérico no se convierte en texto",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "El nombre con ruta no determina dónde se guarda ni se envía sin codificar",
+     "esperado": true,
+     "real": "../../../etc/passwd.jpg",
+     "pasa": true
+    },
+    {
+     "desc": "Tipo de archivo no permitido rechazado",
+     "esperado": true,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /manifest.json no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /var/demo/manifest.json no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /..%2f..%2fpackage.json no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /%2e%2e/%2e%2e/package.json no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /server/config.js no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /.env no expone datos ni código",
+     "esperado": true,
+     "real": "200 <!DOCTYPE html><html lang=\"es-MX\"> <head><meta charset=\"utf-",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /backups/ no expone datos ni código",
+     "esperado": true,
+     "real": "200 <!DOCTYPE html><html lang=\"es-MX\"> <head><meta charset=\"utf-",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /../tests/helpers.js no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Ruta pública /api/../package.json no expone datos ni código",
+     "esperado": true,
+     "real": "404 {\"error\":\"no_encontrado\",\"message\":\"Recurso no encontrado.\"}",
+     "pasa": true
+    },
+    {
+     "desc": "Sin sesión no se descarga un adjunto ni un listado",
+     "esperado": [
+      401,
+      401,
+      401
+     ],
+     "real": [
+      401,
+      401,
+      401
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Una solicitud sin la cabecera propia de la aplicación se rechaza (protección contra envíos de otros sitios)",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Muestra",
+     "valor": "GA-0001,2026-08-25,Proveedor (auditoría),\"'=HYPERLINK(\"\"http://x\"\",\"\"clic\"\")\",Adhesivo,,,,10.00,Borrador,Sin pago,Sin desglose fiscal | GA-0002,2026-08-25,Proveedor (auditoría),'+52 81 0000,Adhesivo,,,,10.00,Borrador,Sin pago,Sin desglose fiscal"
+    },
+    {
+     "desc": "CSV de obligaciones",
+     "valor": "﻿Obligación,Beneficiario,Obra,Origen,Vence,Bruto autorizado,Descuentos,Anticipos aplicados,Neto por pagar,Pagado confirmado,Saldo,Pago | OB-0001,K1 Contratista (auditoría),Obra A (auditoría),EC-2026-S35-001,2026-08-29,100.00,10.00,0.00,90.00,0.00,90.00,Sin pago"
+    },
+    {
+     "desc": "Carga con nombre de ruta",
+     "valor": "200 → nombre guardado \"../../../etc/passwd.jpg\"; el binario se guarda por su hash; cabecera de descarga: inline; filename*=UTF-8''..%2F..%2F..%2Fetc%2Fpasswd.jpg"
+    },
+    {
+     "desc": "Carga de un ejecutable como evidencia",
+     "valor": "422 Tipo de archivo no permitido (.exe). Se aceptan JPG, PNG, WEBP y PDF."
+    },
+    {
+     "desc": "Carga de HTML",
+     "valor": "422 Tipo de archivo no permitido (.html). Se aceptan JPG, PNG, WEBP y PDF."
+    },
+    {
+     "desc": "Cabeceras de seguridad",
+     "valor": "{\"csp\":\"default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src '\",\"frame\":\"DENY\",\"nosniff\":\"nosniff\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "ADV-07",
+   "titulo": "Monedas, comprobante repetido y pago a tercero",
+   "reglas": [
+    "SEM-10",
+    "PAG-06",
+    "PAG-08"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "No se mezclan monedas sin conversión aprobada",
+     "esperado": true,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Una transferencia entre monedas distintas exige tipo de cambio o se bloquea",
+     "esperado": true,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Queda marcado como posible duplicado",
+     "esperado": "posible",
+     "real": "posible",
+     "pasa": true
+    },
+    {
+     "desc": "No se autoriza sin descartar expresamente la alerta",
+     "esperado": true,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Descartar la alerta exige motivo",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "El pago a tercero exige relación o autorización específica",
+     "esperado": true,
+     "real": "se acepta el nombre de quien recibe sin relación ni autorización específica",
+     "pasa": false
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Alta de cuenta en USD",
+     "valor": "200 "
+    },
+    {
+     "desc": "Pagar una obligación en MXN desde la cuenta en USD",
+     "valor": "409 La obligación y la cuenta están en monedas distintas."
+    },
+    {
+     "desc": "Transferir de MXN a USD",
+     "valor": "409 Las cuentas están en monedas distintas."
+    },
+    {
+     "desc": "Totales de caja y bancos",
+     "valor": "[[\"CAJA\",\"MXN\",\"500000.00\"],[\"BANCO\",\"MXN\",\"1000000.00\"],[\"USD1\",\"USD\",\"1000.00\"]]"
+    },
+    {
+     "desc": "Segundo pago con la misma referencia bancaria",
+     "valor": "200  [{\"type\":\"referencia_repetida\",\"message\":\"La referencia ya se usó en PG-0001. Revise antes de continuar.\"},{\"type\":\"posible_duplicado\",\"message\":\"Existe otro pago del mismo importe, fecha y beneficiario (PG-0001).\"}]"
+    },
+    {
+     "desc": "Autorizar el posible duplicado sin revisarlo",
+     "valor": "409 Este pago tiene una alerta de posible duplicado."
+    },
+    {
+     "desc": "Pago entregado a un tercero (payeeName distinto del beneficiario)",
+     "valor": "200  []"
+    },
+    {
+     "desc": "Cómo queda registrado",
+     "valor": "{\"beneficiary\":\"K1 Contratista (auditoría)\",\"payeeName\":\"Un tercero (auditoría)\",\"relation\":null,\"note\":null}"
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "ADV-08",
+   "titulo": "Obra suspendida o cerrada, ubicación en uso y evidencia de un avance aprobado",
+   "reglas": [
+    "OBR-04",
+    "OBR-10",
+    "OBR-11",
+    "EVI-11"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "La evidencia usada en una aprobación no se retira sin procedimiento",
+     "esperado": true,
+     "real": {
+      "estado": 409,
+      "evidencias": 1
+     },
+     "pasa": true
+    },
+    {
+     "desc": "El binario original sigue descargable",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "El documento autorizado conserva el nombre original de la ubicación",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "El avance no queda huérfano",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "Suspender la obra",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "La obra suspendida limita nuevas capturas",
+     "esperado": true,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "Un pago legítimo pendiente sí se registra con la obra suspendida",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Los documentos siguen consultables",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "El cierre financiero con saldos pendientes se bloquea o exige excepción",
+     "esperado": true,
+     "real": 409,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Retirar la evidencia de un avance validado y autorizado",
+     "valor": "409 La evidencia de un avance validado no se retira."
+    },
+    {
+     "desc": "Renombrar una ubicación con avances",
+     "valor": "200 "
+    },
+    {
+     "desc": "Desactivar una ubicación en uso",
+     "valor": "422 Valor no permitido en status: \"inactiva\". Opciones: activo, inactivo."
+    },
+    {
+     "desc": "Capturar en obra suspendida",
+     "valor": "409 La obra está en estado \"suspendida\" y no admite nuevas capturas."
+    },
+    {
+     "desc": "Lista de verificación de cierre financiero",
+     "valor": "[[null,false],[null,true],[null,true],[null,true],[null,true],[null,true]]"
+    },
+    {
+     "desc": "Cierre financiero con pago pendiente",
+     "valor": "409 El cierre financiero requiere el cierre operativo previo."
+    },
+    {
+     "desc": "Cierre operativo",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  },
+  {
+   "id": "ADV-09",
+   "titulo": "Cliente: rechazo, versión corregida, aprobación externa y enlaces",
+   "reglas": [
+    "CLI-04",
+    "CLI-08",
+    "CLI-12",
+    "CLI-13",
+    "CLI-14",
+    "DOC-07",
+    "ACC-06"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "El cliente no ve un borrador",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "La observación del cliente no altera el costo interno",
+     "esperado": "3500.00",
+     "real": "3500.00",
+     "pasa": true
+    },
+    {
+     "desc": "La corrección creó una versión nueva identificable",
+     "esperado": true,
+     "real": [
+      1,
+      2,
+      "9.0000"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Aceptar la versión anterior ya no es válido",
+     "esperado": 409,
+     "real": 409,
+     "pasa": true
+    },
+    {
+     "desc": "La versión enviada antes se conserva",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "Registrar una aprobación externa sin decir quién aprobó ni por qué medio",
+     "esperado": 422,
+     "real": 422,
+     "pasa": true
+    },
+    {
+     "desc": "La aprobación externa identifica al cliente y a quien la registró, sin simular firma",
+     "esperado": true,
+     "real": "\"\"",
+     "pasa": true
+    },
+    {
+     "desc": "Enlace restringido sin sesión",
+     "esperado": 200,
+     "real": 200,
+     "pasa": true
+    },
+    {
+     "desc": "El enlace no revela otras rutas ni identificadores útiles",
+     "esperado": true,
+     "real": "/api/shared/_HT4OyyfY0ijj_kuCFwxioHYXnUObXHr",
+     "pasa": true
+    },
+    {
+     "desc": "La emisión anterior queda marcada como sustituida",
+     "esperado": [
+      "sustituido",
+      "vigente"
+     ],
+     "real": [
+      "sustituido",
+      "vigente"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El enlace de una versión sustituida advierte o deja de servir",
+     "esperado": true,
+     "real": "el enlace sigue entregando el PDF anterior sin advertencia de sustitución",
+     "pasa": false
+    },
+    {
+     "desc": "Enlace revocado",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "Un documento interno no se publica ni se comparte",
+     "esperado": [
+      409,
+      409
+     ],
+     "real": [
+      409,
+      409
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El cliente no lo obtiene por ID",
+     "esperado": 404,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "Tras el rechazo la ejecución vuelve a estar disponible y la obligación con el contratista permanece",
+     "esperado": [
+      "10.0000",
+      "3500.00"
+     ],
+     "real": [
+      "10.0000",
+      "3500.00"
+     ],
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Observación del cliente",
+     "valor": "{\"id\":\"5e7dc2e0-7458-43bf-910b-b9db6db07356\",\"status\":\"observada\"}"
+    },
+    {
+     "desc": "Estado tras observar",
+     "valor": "{\"status\":\"observada\",\"version\":1,\"published\":1}"
+    },
+    {
+     "desc": "Corregir la cantidad a 9 (quitar y volver a agregar la partida)",
+     "valor": "200  / 200 "
+    },
+    {
+     "desc": "Estado tras corregir",
+     "valor": "{\"status\":\"corregida\",\"version\":2,\"published\":1,\"qty\":\"9.0000\"}"
+    },
+    {
+     "desc": "Lo que ve el cliente mientras se corrige",
+     "valor": "200 versión 1 cantidad 10.0000"
+    },
+    {
+     "desc": "Publicar la versión corregida",
+     "valor": "200 "
+    },
+    {
+     "desc": "Versión que ve el cliente",
+     "valor": "{\"version\":2,\"qty\":\"9.0000\"}"
+    },
+    {
+     "desc": "Aprobación registrada",
+     "valor": "[{\"actorName\":\"Arq. Representante (auditoría) (registrado por D1 Dirección (auditoría))\",\"at\":\"2026-10-13T02:13:47.824Z\",\"objectVersion\":2,\"scope\":\"aprobación parcial del cliente\",\"channel\":\"externo\",\"valid\":true,\"note\":\"Aprobó por correo del 02/09 (auditoría)\"}]"
+    },
+    {
+     "desc": "El enlace de la emisión sustituida, tras reemitir",
+     "valor": "200 (application/pdf)"
+    },
+    {
+     "desc": "Rechazo total del cliente",
+     "valor": "{\"respuesta\":\"200 \",\"cancelar\":null,\"reservadoMientrasEstabaEnviada\":\"0.0000\",\"disponible\":\"10.0000\",\"obligacion\":\"3500.00\",\"estado\":\"aprobada\"}"
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "ADV-10",
+   "titulo": "Auditoría: no editable, notificaciones sin repetición y periodo económico cerrado",
+   "reglas": [
+    "AUD-01",
+    "AUD-02",
+    "AUD-06",
+    "DOC-06",
+    "RES-09"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "El evento registra actor, fecha, objeto, versión y operación",
+     "esperado": true,
+     "real": [
+      "id",
+      "seq",
+      "at",
+      "actorName",
+      "action",
+      "kind",
+      "kindLabel",
+      "collection",
+      "entity",
+      "objectId",
+      "objectVersion",
+      "reason",
+      "diff",
+      "changes"
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "El historial no se modifica por PATCH /api/audit/ad952578-59fc-4130-ae13-396347d80fe8",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "El historial no se modifica por DELETE /api/audit/ad952578-59fc-4130-ae13-396347d80fe8",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "El historial no se modifica por POST /api/audit",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "El historial no se modifica por PATCH /api/catalog/auditEvents",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "El historial no se modifica por DELETE /api/catalog/auditEvents",
+     "esperado": true,
+     "real": 404,
+     "pasa": true
+    },
+    {
+     "desc": "Cadena de auditoría íntegra",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    },
+    {
+     "desc": "El auditor consulta pero no opera",
+     "esperado": [
+      200,
+      403
+     ],
+     "real": [
+      200,
+      403
+     ],
+     "pasa": true
+    },
+    {
+     "desc": "Reintentar el cierre no repite avisos",
+     "esperado": 6,
+     "real": 6,
+     "pasa": true
+    },
+    {
+     "desc": "No hay dos avisos iguales por evento, versión y destinatario",
+     "esperado": 6,
+     "real": 6,
+     "pasa": true
+    },
+    {
+     "desc": "Un periodo cerrado bloquea o versiona los cambios retroactivos",
+     "esperado": true,
+     "real": {
+      "captura": 200,
+      "autorizacion": 200
+     },
+     "pasa": false
+    },
+    {
+     "desc": "La auxiliar no cierra periodos",
+     "esperado": true,
+     "real": true,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Evento de autorización",
+     "valor": "{\"id\":\"ad952578-59fc-4130-ae13-396347d80fe8\",\"seq\":279,\"at\":\"2026-10-13T02:13:52.971Z\",\"actorName\":\"D1 Dirección (auditoría)\",\"action\":\"autorizacion estimacion\",\"kind\":\"alta\",\"kindLabel\":\"Alta\",\"collection\":\"approvals\",\"entity\":\"Aprobación\",\"objectId\":\"c8edcb29-4021-4b26-8af3-de5ec88d0175\",\"objectVersion\":1,\"reason\":\"Caso de auditoría: conformidad fuera del sistema\",\"diff\":null,\"changes\":null}"
+    },
+    {
+     "desc": "Avisos generados por el cierre",
+     "valor": 2
+    },
+    {
+     "desc": "Archivos en la carpeta de datos",
+     "valor": "backups,blobs,generations,imports,instance.lock,manifest.json,manifests,secure"
+    },
+    {
+     "desc": "Cerrar el periodo económico 2026-08",
+     "valor": "200 "
+    },
+    {
+     "desc": "Capturar un gasto con fecha del periodo cerrado",
+     "valor": "200 "
+    },
+    {
+     "desc": "Autorizarlo",
+     "valor": "200 "
+    }
+   ],
+   "error": null,
+   "resultado": "FALLA"
+  },
+  {
+   "id": "ADV-11",
+   "titulo": "Sesiones, contraseñas, límites y validación propia",
+   "reglas": [
+    "ACC-07",
+    "ACC-09",
+    "ACC-12",
+    "PER-15"
+   ],
+   "comprobaciones": [
+    {
+     "desc": "Quien captura no valida su propia captura, tampoco dirección",
+     "esperado": true,
+     "real": 403,
+     "pasa": true
+    },
+    {
+     "desc": "Los intentos repetidos de acceso se frenan",
+     "esperado": true,
+     "real": 429,
+     "pasa": true
+    },
+    {
+     "desc": "Cerrar sesión invalida la cookie",
+     "esperado": 401,
+     "real": 401,
+     "pasa": true
+    },
+    {
+     "desc": "La contraseña no está en claro en ningún archivo de datos",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "La sesión no devuelve secretos",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "El listado de usuarios no devuelve secretos",
+     "esperado": false,
+     "real": false,
+     "pasa": true
+    },
+    {
+     "desc": "S1 no cambia parámetros ni tolerancias",
+     "esperado": 403,
+     "real": 403,
+     "pasa": true
+    }
+   ],
+   "observaciones": [
+    {
+     "desc": "Dirección valida un avance que ella misma capturó (policy.selfValidation=false)",
+     "valor": "403 Quien captura un avance no puede validarlo. Pida la revisión a coordinación o dirección."
+    },
+    {
+     "desc": "Estado tras 12 intentos fallidos de acceso",
+     "valor": 429
+    },
+    {
+     "desc": "Límites de autorización de fábrica",
+     "valor": "[]"
+    },
+    {
+     "desc": "Parámetros que requieren decisión de DCL",
+     "valor": "[[\"policy.cashReceiptRequired\",true],[\"policy.conformityRequired\",true],[\"policy.partialAuthorization\",true],[\"policy.selfValidation\",false],[\"revenue.policy\",\"no_definida\"],[\"startup.openingDate\",null],[\"startup.strategy\",\"no_definida\"],[\"tolerance.cents\",\"1.00\"],[\"workday.hoursPerDay\",\"8\"],[\"workday.maxPerDay\",\"1\"]]"
+    },
+    {
+     "desc": "Dirección cambia la tolerancia sin motivo",
+     "valor": "422 Indique el motivo de el cambio de configuración (al menos 5 caracteres)."
+    }
+   ],
+   "error": null,
+   "resultado": "PASA"
+  }
+ ]
+}
